@@ -10,6 +10,7 @@ import {
   headlineFor,
   splitOverlapReason,
   v,
+  relPath,
 } from './explain'
 import { Time, VerdictChip, verdictVar } from './ui'
 
@@ -94,8 +95,9 @@ export function EditCard({
   const tone = verdict === 'red' || verdict === 'amber' ? verdict : 'green'
   const ex = useMemo(() => (e.cause ? excerpt(e.cause.content, e.fragments) : null), [e])
   const showSource = (verdict === 'red' || verdict === 'amber') && e.cause
-  const dir = write.file_path.includes('/') ? write.file_path.slice(0, write.file_path.lastIndexOf('/') + 1) : ''
-  const name = write.file_path.slice(dir.length)
+  const path = relPath(write.file_path, cwd)
+  const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : ''
+  const name = path.slice(dir.length)
   const c = verdictVar[verdict]
 
   return (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ContextEvent, WriteEvent } from '#/server/queries'
 import { Highlighted } from './EditCard'
-import { type InputKind, type VerdictOrPending, basename, describeInput, explain, findRanges, v } from './explain'
+import { type InputKind, type VerdictOrPending, basename, describeInput, explain, findRanges, readable, v } from './explain'
 import { Time, verdictVar } from './ui'
 
 const ICON: Record<InputKind, string> = {
@@ -48,7 +48,7 @@ export function InputTimeline({
 
   // input id -> worst verdict among edits it caused, plus fragments to highlight
   const caused = useMemo(() => {
-    const m = new Map<string, { verdict: VerdictOrPending; n: number; frags: string[] }>()
+    const m = new Map<string, { verdict: VerdictOrPending; red: number; amber: number; frags: string[] }>()
     for (const w of writes) {
       const verdict = v(w.verdict)
       if (verdict !== 'red' && verdict !== 'amber') continue
@@ -57,7 +57,8 @@ export function InputTimeline({
       const prev = m.get(e.cause.id)
       m.set(e.cause.id, {
         verdict: prev?.verdict === 'red' ? 'red' : verdict,
-        n: (prev?.n ?? 0) + 1,
+        red: (prev?.red ?? 0) + (verdict === 'red' ? 1 : 0),
+        amber: (prev?.amber ?? 0) + (verdict === 'amber' ? 1 : 0),
         frags: [...(prev?.frags ?? []), ...e.fragments],
       })
     }
@@ -164,7 +165,14 @@ export function InputTimeline({
                   </span>
                   {hit && (
                     <span className="mt-1 block text-sm font-medium" style={{ color: hc }}>
-                      Led to {hit.n} {hit.verdict === 'red' ? 'injected' : 'borrowed'} edit{hit.n === 1 ? '' : 's'}
+                      Led to{' '}
+                      {[
+                        hit.red && `${hit.red} injected`,
+                        hit.amber && `${hit.amber} borrowed`,
+                      ]
+                        .filter(Boolean)
+                        .join(' and ')}{' '}
+                      edit{hit.red + hit.amber === 1 ? '' : 's'}
                     </span>
                   )}
                 </span>
@@ -173,12 +181,12 @@ export function InputTimeline({
                 <pre className="code scroll-thin mx-2 mt-1 mb-2 ml-10 max-h-80 overflow-auto overscroll-contain whitespace-pre-wrap break-words rounded-md bg-code p-3 text-fg/90">
                   {hit ? (
                     <Highlighted
-                      text={c.content}
-                      ranges={findRanges(c.content, hit.frags)}
+                      text={readable(c.content)}
+                      ranges={findRanges(readable(c.content), hit.frags)}
                       tone={hit.verdict === 'red' ? 'red' : 'amber'}
                     />
                   ) : (
-                    c.content
+                    readable(c.content)
                   )}
                 </pre>
               )}

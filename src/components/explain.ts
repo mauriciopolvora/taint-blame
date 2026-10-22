@@ -59,13 +59,12 @@ export function describeInput(c: ContextEvent | undefined, cwd?: string | null):
   }
   if (src === 'bash' && (GH_CLI.test(ref) || /\bcurl\b.*api\.github\.com\/.*\/issues/.test(ref))) {
     const pr = /^\s*gh\s+pr/.test(ref)
-    return {
-      kind: 'github',
-      label: pr ? 'GitHub pull request' : 'GitHub issue',
-      noun: pr ? 'a GitHub pull request' : 'a GitHub issue',
-      detail: ref.trim(),
-      outside,
-    }
+    const kind = pr ? 'GitHub pull request' : 'GitHub issue'
+    const number = ghCliNumber(ref)
+    // short '' keeps sentences as "GitHub issue #1" instead of appending the raw command.
+    return number
+      ? { kind: 'github', label: kind, noun: `${kind} ${number}`, detail: number, short: '', outside }
+      : { kind: 'github', label: kind, noun: pr ? 'a GitHub pull request' : 'a GitHub issue', detail: ref.trim(), outside }
   }
   if (src.startsWith('mcp') && /issue|pull_request|get_pr/i.test(src)) {
     return { kind: 'github', label: 'GitHub issue', noun: 'a GitHub issue', detail: ref || src.slice(4), outside }
@@ -116,7 +115,17 @@ function host(u: string): string | undefined {
   }
 }
 
-function relPath(p: string, cwd?: string | null): string {
+// "gh issue view 1 -R owner/repo --json ..." -> "owner/repo#1", or "#1" without a repo.
+function ghCliNumber(cmd: string): string | null {
+  const url = cmd.match(GH_WEB_ISSUE)
+  if (url) return `${url[1]}/${url[2]}#${url[4]}`
+  const n = cmd.match(/^\s*gh\s+(?:issue|pr)\s+view\s+(\d+)\b/)
+  if (!n) return null
+  const repo = cmd.match(/(?:-R|--repo)[\s=]+([\w.-]+\/[\w.-]+)/)
+  return repo ? `${repo[1]}#${n[1]}` : `#${n[1]}`
+}
+
+export function relPath(p: string, cwd?: string | null): string {
   if (!cwd || !p.startsWith(cwd)) return p
   return p.slice(cwd.length).replace(/^\/+/, '') || p
 }
@@ -240,7 +249,19 @@ export type Excerpt = {
 const MAX_SIDE = 220
 
 // The sentence (or hidden comment) around the first highlighted fragment.
-export function excerpt(content: string, frags: string[]): Excerpt | null {
+// JSON tool output (e.g. gh --json) arrives with escaped newlines and <, >.
+// Decode it for display so a hidden comment reads like it does in the issue.
+export function readable(t: string): string {
+  if (!/^\s*[{[]/.test(t)) return t
+  return t
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(Number.parseInt(h, 16)))
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+}
+
+export function excerpt(raw: string, frags: string[]): Excerpt | null {
+  const content = readable(raw)
   const all = findRanges(content, frags)
   if (all.length === 0) return null
   const [s0, e0] = all[0]
