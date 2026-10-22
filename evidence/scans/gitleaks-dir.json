@@ -1,0 +1,22 @@
+[
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 1,
+  "EndLine": 1,
+  "StartColumn": 1,
+  "EndColumn": 82,
+  "Match": "TAINT_BLAME_TOKEN=REDACTED",
+  "Secret": "REDACTED",
+  "File": ".env.adapter",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 3.8738887,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": ".env.adapter:generic-api-key:1"
+ }
+]

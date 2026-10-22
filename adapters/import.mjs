@@ -208,13 +208,13 @@ async function main() {
 
     if (o.dryRun) {
       for (const e of events) console.log(JSON.stringify(e))
-      console.error(`[dry-run] ${agent}: ${events.length} events, sessions ${sessions.join(', ')}`, counts)
+      console.error('[dry-run] %s: %d events, sessions %s', agent, events.length, sessions.join(', '), counts)
       return
     }
     const bs = batches(events)
     // send() never throws; failed batches land in the queue and are retried by flushQueue below.
     for (const b of bs) await send(b)
-    console.error(`${agent}: submitted ${events.length} events (failures queued) in ${bs.length} batch(es), sessions ${sessions.join(', ')}`, counts)
+    console.error('%s: submitted %d events (failures queued) in %d batch(es), sessions %s', agent, events.length, bs.length, sessions.join(', '), counts)
   }
   if (!o.dryRun) {
     const flushed = await flushQueue()

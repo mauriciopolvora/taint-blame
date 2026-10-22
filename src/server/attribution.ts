@@ -71,7 +71,7 @@ export async function attributeWrites(env: Env, writeIds: string[]): Promise<voi
         .first<WriteRow>()
       if (w) await attributeOne(env, w)
     } catch (err) {
-      console.error(`attribution failed for ${id}`, err)
+      console.error('attribution failed for %s', id, err)
     }
   }
 }
