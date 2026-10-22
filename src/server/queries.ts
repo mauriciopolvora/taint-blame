@@ -24,6 +24,10 @@ export type SessionSummary = {
   influenced_lines: number
   // changed lines per verdict (pending = verdict null)
   lines: Record<Verdict | 'pending', number>
+  // newest input or edit timestamp (falls back to started_at)
+  last_activity: number
+  // files touched by injected edits
+  red_files: string[]
 }
 
 export type ContextEvent = {
@@ -68,15 +72,15 @@ export const listSessions = createServerFn({ method: 'GET' }).handler(async (): 
   const [sessions, ctx, writes] = await db.batch([
     db.prepare('SELECT id, agent, cwd, started_at FROM sessions ORDER BY started_at DESC LIMIT 200'),
     db.prepare(
-      `SELECT session_id, COUNT(*) AS inputs, SUM(trust = 'untrusted') AS untrusted
+      `SELECT session_id, COUNT(*) AS inputs, SUM(trust = 'untrusted') AS untrusted, MAX(ts) AS last_ts
        FROM context_events GROUP BY session_id`,
     ),
-    db.prepare('SELECT session_id, verdict, new_text FROM write_events'),
+    db.prepare('SELECT session_id, ts, file_path, verdict, new_text FROM write_events'),
   ])
 
-  const ctxBy = new Map<string, { inputs: number; untrusted: number }>()
-  for (const r of ctx.results as { session_id: string; inputs: number; untrusted: number }[]) {
-    ctxBy.set(r.session_id, { inputs: r.inputs, untrusted: r.untrusted ?? 0 })
+  const ctxBy = new Map<string, { inputs: number; untrusted: number; last_ts: number }>()
+  for (const r of ctx.results as { session_id: string; inputs: number; untrusted: number; last_ts: number }[]) {
+    ctxBy.set(r.session_id, { inputs: r.inputs, untrusted: r.untrusted ?? 0, last_ts: r.last_ts ?? 0 })
   }
 
   const out = new Map<string, SessionSummary>()
@@ -94,11 +98,21 @@ export const listSessions = createServerFn({ method: 'GET' }).handler(async (): 
       changed_lines: 0,
       influenced_lines: 0,
       lines: { red: 0, amber: 0, green: 0, pending: 0 },
+      last_activity: Math.max(s.started_at, c?.last_ts ?? 0),
+      red_files: [],
     })
   }
-  for (const w of writes.results as { session_id: string; verdict: Verdict | null; new_text: string }[]) {
+  for (const w of writes.results as {
+    session_id: string
+    ts: number
+    file_path: string
+    verdict: Verdict | null
+    new_text: string
+  }[]) {
     const s = out.get(w.session_id)
     if (!s) continue
+    s.last_activity = Math.max(s.last_activity, w.ts)
+    if (w.verdict === 'red' && !s.red_files.includes(w.file_path)) s.red_files.push(w.file_path)
     const lines = changedLines(w.new_text)
     s.writes++
     s.changed_lines += lines
@@ -107,7 +121,7 @@ export const listSessions = createServerFn({ method: 'GET' }).handler(async (): 
     s[k]++
     s.lines[k] += lines
   }
-  return [...out.values()]
+  return [...out.values()].sort((a, b) => b.last_activity - a.last_activity)
 })
 
 export const getSession = createServerFn({ method: 'GET' })

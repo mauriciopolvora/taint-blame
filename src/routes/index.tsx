@@ -1,153 +1,152 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { AgentBadge, Logo, SplitBar, Time, pct, repoName, verdictVar } from '#/components/ui'
-import { listSessions } from '#/server/queries'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { basename } from '#/components/explain'
+import { useArrivals, useLiveRefresh } from '#/components/live'
+import { AgentName, Ago, Header, Legend, repoName, verdictVar } from '#/components/ui'
+import { type SessionSummary, listSessions } from '#/server/queries'
 
 export const Route = createFileRoute('/')({
   loader: () => listSessions(),
   component: Home,
 })
 
-function Count({ n, color }: { n: number; color: string }) {
-  return (
-    <span className="font-mono text-sm tabular-nums" style={{ color: n > 0 ? color : 'var(--color-faint)' }}>
-      {n}
-    </span>
-  )
-}
-
 function Home() {
   const sessions = Route.useLoaderData()
-
-  const totals = sessions.reduce(
-    (t, s) => ({
-      changed: t.changed + s.changed_lines,
-      influenced: t.influenced + s.influenced_lines,
-      red: t.red + s.red,
-      amber: t.amber + s.amber,
-    }),
-    { changed: 0, influenced: 0, red: 0, amber: 0 },
-  )
+  const live = useLiveRefresh()
+  const isFresh = useArrivals(sessions.map((s) => s.id))
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-line bg-panel">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-6 px-6 py-3.5">
-          <Logo />
-          <span className="hidden text-sm text-muted md:inline">
-            Git blame for AI-written code, by what the agent had read.
-          </span>
-        </div>
-      </header>
+      <Header live={live.state} />
 
-      <main className="mx-auto max-w-[1400px] px-6 py-8">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <h1 className="m-0 text-2xl font-semibold tracking-tight">Agent sessions</h1>
-            <p className="mt-1 mb-0 max-w-2xl text-sm text-muted">
-              Scanners try to block prompt injection. We assume it gets through and show you exactly which lines it
-              wrote.
-            </p>
-          </div>
-          <div className="flex gap-8 font-mono">
-            <Stat label="sessions" value={sessions.length} />
-            <Stat label="influenced lines" value={`${pct(totals.influenced, totals.changed)}%`} />
-            <Stat label="injected edits" value={totals.red} color={totals.red ? verdictVar.red : undefined} />
-            <Stat label="copied edits" value={totals.amber} color={totals.amber ? verdictVar.amber : undefined} />
-          </div>
-        </div>
+      <main className="mx-auto max-w-[1440px] px-6 pt-10 pb-24">
+        <section className="max-w-4xl">
+          <h1 className="m-0 text-[34px] font-bold leading-tight tracking-tight text-balance md:text-[40px]">
+            Git blame for code your AI agent wrote
+          </h1>
+          <p className="m-0 mt-3 max-w-[60ch] text-xl leading-snug text-muted text-pretty">
+            Scanners try to block prompt injection. We assume it gets through and show you exactly which lines it
+            wrote.
+          </p>
+        </section>
+        <Legend className="mt-8 max-w-5xl" />
 
-        {sessions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line-2 p-12 text-center text-muted">
-            No sessions yet. Point an adapter at <code className="font-mono text-fg">/api/events</code> and run an
-            agent.
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-line bg-panel">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-line font-mono text-[11px] uppercase tracking-wider text-faint">
-                  <th className="px-4 py-2.5 font-medium">Agent</th>
-                  <th className="px-4 py-2.5 font-medium">Repo</th>
-                  <th className="px-4 py-2.5 font-medium">Started</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Inputs</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Edits</th>
-                  <th className="w-[26%] px-4 py-2.5 font-medium">Lines influenced by untrusted input</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Injected</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Copied</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((s) => {
-                  const allPending = s.writes > 0 && s.pending === s.writes
-                  const p = allPending ? '–' : `${pct(s.influenced_lines, s.changed_lines)}%`
-                  const pColor = s.red > 0 ? verdictVar.red : s.amber > 0 ? verdictVar.amber : 'var(--color-muted)'
-                  return (
-                    <tr key={s.id} className="group border-b border-line last:border-b-0 hover:bg-panel-2">
-                      <td className="px-4 py-3">
-                        <Link to="/sessions/$id" params={{ id: s.id }}>
-                          <AgentBadge agent={s.agent} />
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          to="/sessions/$id"
-                          params={{ id: s.id }}
-                          className="whitespace-nowrap font-mono text-sm font-medium text-fg no-underline group-hover:underline"
-                        >
-                          {repoName(s.cwd)}
-                        </Link>
-                        <div className="mt-0.5 font-mono text-[11px] text-faint">{s.id.slice(0, 12)}</div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted">
-                        <Time ts={s.started_at} withDate />
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-sm tabular-nums text-fg">
-                        {s.inputs}
-                        {s.untrusted_inputs > 0 && (
-                          <span className="ml-1.5 text-[11px] text-t-untrusted">{s.untrusted_inputs} untrusted</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-sm tabular-nums text-fg">
-                        {s.writes}
-                        {s.pending > 0 && <span className="ml-1.5 text-[11px] text-v-pending">{s.pending} pending</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="w-11 text-right font-mono text-base font-semibold tabular-nums" style={{ color: pColor }}>
-                            {p}
-                          </span>
-                          <SplitBar
-                            className="flex-1"
-                            height={6}
-                            split={s.lines}
-                          />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Count n={s.red} color={verdictVar.red} />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Count n={s.amber} color={verdictVar.amber} />
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <h2 className="m-0 mt-12 mb-4 text-xl font-semibold">
+          Sessions <span className="font-normal text-muted tabular-nums">{sessions.length || ''}</span>
+        </h2>
+        {sessions.length === 0 ? <EmptyState /> : <SessionTable sessions={sessions} isFresh={isFresh} />}
       </main>
     </div>
   )
 }
 
-function Stat({ label, value, color }: { label: string; value: string | number; color?: string }) {
+function SessionTable({ sessions, isFresh }: { sessions: SessionSummary[]; isFresh: (id: string) => boolean }) {
+  const navigate = useNavigate()
   return (
-    <div className="text-right">
-      <div className="text-2xl font-semibold tabular-nums" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-[11px] uppercase tracking-wider text-faint">{label}</div>
+    <div className="overflow-x-auto rounded-xl border border-line bg-panel">
+      <table className="w-full min-w-[760px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-line text-sm text-muted">
+            <th className="px-5 py-3 font-medium">Session</th>
+            <th className="w-36 px-4 py-3 text-right font-medium">Injected</th>
+            <th className="w-32 px-4 py-3 text-right font-medium">Borrowed</th>
+            <th className="w-36 px-4 py-3 text-right font-medium">Your request</th>
+            <th className="w-40 px-5 py-3 text-right font-medium">Last activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sessions.map((s) => {
+            const go = () => navigate({ to: '/sessions/$id', params: { id: s.id } })
+            return (
+              <tr
+                key={s.id}
+                onClick={go}
+                className={`cursor-pointer border-b border-line last:border-b-0 hover:bg-panel-2 ${isFresh(s.id) ? 'enter' : ''}`}
+                style={s.red ? { boxShadow: `inset 4px 0 0 ${verdictVar.red}` } : undefined}
+              >
+                <td className="px-5 py-4">
+                  <a
+                    href={`/sessions/${encodeURIComponent(s.id)}`}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+                      e.preventDefault()
+                      go()
+                    }}
+                    className="rounded text-lg font-semibold text-fg no-underline hover:underline"
+                  >
+                    {repoName(s.cwd)}
+                  </a>
+                  <div className="mt-0.5 text-[15px] text-muted">
+                    <AgentName agent={s.agent} /> · {s.writes} edit{s.writes === 1 ? '' : 's'} · read {s.inputs} input
+                    {s.inputs === 1 ? '' : 's'}
+                    {s.untrusted_inputs > 0 && <span className="text-outside">, {s.untrusted_inputs} from outside</span>}
+                    {s.pending > 0 && <span> · {s.pending} still being checked</span>}
+                  </div>
+                  {s.red_files.length > 0 && (
+                    <div className="mt-1 text-[15px] font-medium text-v-red">
+                      Injected code in {s.red_files.map(basename).join(', ')}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-4 text-right">
+                  {s.red > 0 ? (
+                    <span className="text-3xl font-bold tabular-nums text-v-red">{s.red}</span>
+                  ) : (
+                    <span className="text-lg text-faint">None</span>
+                  )}
+                </td>
+                <td className="px-4 py-4 text-right">
+                  <Num n={s.amber} color={verdictVar.amber} />
+                </td>
+                <td className="px-4 py-4 text-right">
+                  <Num n={s.green} color={verdictVar.green} />
+                </td>
+                <td className="px-5 py-4 text-right text-[15px] whitespace-nowrap text-muted">
+                  <Ago ts={s.last_activity} />
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Num({ n, color }: { n: number; color: string }) {
+  return (
+    <span className="text-2xl font-semibold tabular-nums" style={{ color: n ? color : 'var(--color-faint)' }}>
+      {n}
+    </span>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-xl border border-dashed border-line-2 p-8 md:p-10">
+      <p className="m-0 text-xl font-semibold">No sessions yet</p>
+      <p className="m-0 mt-2 max-w-[65ch] text-[17px] text-muted">
+        Connect a coding agent and run it. Every file it reads and every edit it makes shows up here within a few
+        seconds. This page updates on its own.
+      </p>
+      <ol className="m-0 mt-6 grid list-none gap-4 p-0 md:grid-cols-2">
+        <li className="rounded-lg bg-panel p-5">
+          <p className="m-0 font-semibold">Claude Code</p>
+          <p className="m-0 mt-1 text-[15px] text-muted">Install the hook into the repo you want to watch:</p>
+          <pre className="code m-0 mt-3 overflow-x-auto rounded-md bg-code p-3">
+            node adapters/claude-code/install.mjs /path/to/repo
+          </pre>
+        </li>
+        <li className="rounded-lg bg-panel p-5">
+          <p className="m-0 font-semibold">pi</p>
+          <p className="m-0 mt-1 text-[15px] text-muted">Load the extension when you start pi:</p>
+          <pre className="code m-0 mt-3 overflow-x-auto rounded-md bg-code p-3">pi -e adapters/pi/taint-blame.ts</pre>
+        </li>
+      </ol>
+      <p className="m-0 mt-4 text-[15px] text-muted">
+        Both read <code className="code text-fg">TAINT_BLAME_URL</code> and <code className="code text-fg">TAINT_BLAME_TOKEN</code>{' '}
+        from <code className="code text-fg">~/.taint-blame/config.env</code>. Already have a transcript? Replay it with{' '}
+        <code className="code text-fg">node adapters/import.mjs &lt;file.jsonl&gt;</code>.
+      </p>
     </div>
   )
 }

@@ -1,24 +1,11 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { DetailPanel } from '#/components/DetailPanel'
-import { Hunk } from '#/components/Hunk'
-import { Timeline, type TimelineItem } from '#/components/Timeline'
-import {
-  AgentBadge,
-  Logo,
-  type Split,
-  SplitBar,
-  Time,
-  VERDICT_HINT,
-  VERDICT_LABEL,
-  type VerdictOrPending,
-  pct,
-  repoName,
-  v,
-  verdictVar,
-} from '#/components/ui'
-import { changedLines } from '#/components/diff'
-import { type ContextEvent, type Verdict, type WriteEvent, getSession } from '#/server/queries'
+import { useMemo } from 'react'
+import { EditCard } from '#/components/EditCard'
+import { InputTimeline } from '#/components/InputTimeline'
+import { VERDICT_HINT, type VerdictOrPending, sessionSummary, v } from '#/components/explain'
+import { useArrivals, useLiveRefresh } from '#/components/live'
+import { AgentName, Ago, Header, VerdictChip, repoName, verdictVar } from '#/components/ui'
+import { type ContextEvent, type WriteEvent, getSession } from '#/server/queries'
 
 export const Route = createFileRoute('/sessions/$id')({
   loader: async ({ params }) => {
@@ -26,258 +13,237 @@ export const Route = createFileRoute('/sessions/$id')({
     if (!data) throw notFound()
     return data
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: loaderData ? `${repoName(loaderData.session.cwd)} · Taint Blame` : 'Taint Blame' }],
-  }),
+  head: ({ loaderData }) => {
+    if (!loaderData) return { meta: [{ title: 'Taint Blame' }] }
+    const red = loaderData.writes.filter((w) => w.verdict === 'red').length
+    return {
+      meta: [{ title: `${red ? `(${red} injected) ` : ''}${repoName(loaderData.session.cwd)} · Taint Blame` }],
+    }
+  },
   component: SessionPage,
 })
 
-const isInfluenced = (w: WriteEvent) => w.verdict === 'red' || w.verdict === 'amber'
-const RANK: Record<VerdictOrPending, number> = { red: 3, amber: 2, pending: 1, green: 0 }
+const SECTION: Record<VerdictOrPending, { title: string; empty?: string }> = {
+  red: { title: 'Injected: did something you never asked for' },
+  amber: { title: 'Borrowed: copied from outside, but serves your request' },
+  pending: { title: 'Still being checked' },
+  green: { title: 'Your request' },
+}
 
 function SessionPage() {
   const { session, contexts, writes } = Route.useLoaderData()
-  const [untrustedOnly, setUntrustedOnly] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-
+  const live = useLiveRefresh()
   const ctxMap = useMemo(() => new Map(contexts.map((c) => [c.id, c])), [contexts])
-  const selected = writes.find((w) => w.id === selectedId) ?? null
+  const isFresh = useArrivals(useMemo(() => [...contexts.map((c) => c.id), ...writes.map((w) => w.id)], [contexts, writes]))
 
-  const split = useMemo(() => {
-    const s: Split = { red: 0, amber: 0, green: 0, pending: 0 }
-    for (const w of writes) s[v(w.verdict)] += changedLines(w.new_text)
-    return s
-  }, [writes])
-  const total = split.red + split.amber + split.green + split.pending
-  const influenced = split.red + split.amber
-  const counts = useMemo(() => {
-    const c: Split = { red: 0, amber: 0, green: 0, pending: 0 }
-    for (const w of writes) c[v(w.verdict)]++
-    return c
+  const groups = useMemo(() => {
+    const g: Record<VerdictOrPending, WriteEvent[]> = { red: [], amber: [], green: [], pending: [] }
+    for (const w of writes) g[v(w.verdict)].push(w)
+    return g
   }, [writes])
 
-  // context id -> verdicts of the writes it was blamed for (non-green only matter visually)
-  const influence = useMemo(() => {
-    const m = new Map<string, Verdict[]>()
-    for (const w of writes) {
-      if (!w.verdict) continue
-      const seen = new Set<string>()
-      for (const a of w.attributions) {
-        if (a.verdict === 'green' || seen.has(a.context_id)) continue
-        seen.add(a.context_id)
-        m.set(a.context_id, [...(m.get(a.context_id) ?? []), a.verdict])
-      }
-    }
-    return m
-  }, [writes])
-
-  const highlighted = useMemo(() => {
-    const m = new Map<string, Verdict>()
-    for (const a of selected?.attributions ?? []) {
-      const prev = m.get(a.context_id)
-      if (!prev || RANK[a.verdict] > RANK[prev]) m.set(a.context_id, a.verdict)
-    }
-    return m
-  }, [selected])
-
-  const visibleWrites = untrustedOnly ? writes.filter(isInfluenced) : writes
-  const visibleContexts = untrustedOnly ? contexts.filter((c) => c.trust !== 'trusted') : contexts
-
-  const timeline = useMemo<TimelineItem[]>(() => {
-    const items: (TimelineItem & { ts: number; o: number })[] = [
-      ...visibleContexts.map((c, i) => ({ kind: 'ctx' as const, ctx: c, ts: c.ts, o: i })),
-      ...visibleWrites.map((w, i) => ({ kind: 'write' as const, write: w, ts: w.ts, o: 10_000 + i })),
-    ]
-    return items.sort((a, b) => a.ts - b.ts || a.o - b.o)
-  }, [visibleContexts, visibleWrites])
-
-  // Group writes by file, files ordered by worst verdict then first edit.
-  const files = useMemo(() => {
-    const m = new Map<string, WriteEvent[]>()
-    for (const w of visibleWrites) m.set(w.file_path, [...(m.get(w.file_path) ?? []), w])
-    return [...m.entries()]
-      .map(([path, ws]) => ({
-        path,
-        writes: ws,
-        worst: ws.reduce<VerdictOrPending>((acc, w) => (RANK[v(w.verdict)] > RANK[acc] ? v(w.verdict) : acc), 'green'),
-      }))
-      .sort((a, b) => RANK[b.worst] - RANK[a.worst] || a.writes[0].ts - b.writes[0].ts)
-  }, [visibleWrites])
-
-  const selectWrite = useCallback((id: string) => {
-    setSelectedId(id)
-    const el = document.getElementById(`w-${id}`)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      el.classList.remove('flash')
-      void el.offsetWidth
-      el.classList.add('flash')
-    }
-  }, [])
-  const close = useCallback(() => setSelectedId(null), [])
-
-  // Deselect if the filter hides the selected write.
-  useEffect(() => {
-    if (selectedId && !visibleWrites.some((w) => w.id === selectedId)) setSelectedId(null)
-  }, [visibleWrites, selectedId])
-
-  const p = pct(influenced, total)
-  const allPending = total > 0 && split.pending === total
-  const headline = split.red > 0 ? verdictVar.red : split.amber > 0 ? verdictVar.amber : allPending ? verdictVar.pending : verdictVar.green
+  const summary = useMemo(() => sessionSummary(writes, ctxMap, session.cwd), [writes, ctxMap, session.cwd])
+  const tone: VerdictOrPending = groups.red.length
+    ? 'red'
+    : groups.amber.length
+      ? 'amber'
+      : groups.pending.length && !groups.green.length
+        ? 'pending'
+        : 'green'
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      {/* App bar */}
-      <header className="shrink-0 border-b border-line bg-panel">
-        <div className="flex items-center gap-4 px-5 py-3">
-          <Logo />
-          <span className="text-faint">/</span>
-          <Link to="/" className="text-sm text-muted no-underline hover:text-fg">
-            sessions
-          </Link>
-          <span className="text-faint">/</span>
-          <span className="font-mono text-sm font-medium text-fg">{repoName(session.cwd)}</span>
-          <AgentBadge agent={session.agent} />
-          <span className="hidden font-mono text-xs text-faint lg:inline">{session.id}</span>
-          <span className="ml-auto text-xs text-muted">
-            started <Time ts={session.started_at} withDate />
+    <div className="min-h-screen">
+      <Header live={live.state}>
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-[15px]">
+          <span className="text-faint" aria-hidden>
+            /
           </span>
+          <Link to="/" className="rounded text-muted no-underline hover:text-fg">
+            Sessions
+          </Link>
+          <span className="text-faint" aria-hidden>
+            /
+          </span>
+          <span className="truncate font-medium text-fg">{repoName(session.cwd)}</span>
+        </nav>
+      </Header>
+
+      <main className="mx-auto max-w-[1440px] px-6 pt-8 pb-24">
+        <Summary
+          tone={tone}
+          lines={summary}
+          groups={groups}
+          contexts={contexts}
+          agent={session.agent}
+          cwd={session.cwd}
+          startedAt={session.started_at}
+        />
+
+        <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="min-w-0 space-y-10">
+            {writes.length === 0 && (
+              <div className="rounded-xl border border-dashed border-line-2 p-10 text-center text-lg text-muted">
+                No edits yet. They will appear here as the agent works.
+              </div>
+            )}
+            {(['red', 'amber', 'pending'] as const).map((k) =>
+              groups[k].length ? (
+                <section key={k} aria-labelledby={`sec-${k}`}>
+                  <SectionTitle id={`sec-${k}`} verdict={k} count={groups[k].length} />
+                  <div className="space-y-5">
+                    {groups[k].map((w) => (
+                      <EditCard key={w.id} write={w} ctx={ctxMap} cwd={session.cwd} fresh={isFresh(w.id)} />
+                    ))}
+                  </div>
+                </section>
+              ) : null,
+            )}
+            {groups.green.length > 0 && (
+              <GreenSection writes={groups.green} ctx={ctxMap} cwd={session.cwd} isFresh={isFresh} />
+            )}
+          </div>
+
+          <aside className="lg:sticky lg:top-24">
+            <InputTimeline contexts={contexts} writes={writes} ctxMap={ctxMap} cwd={session.cwd} isFresh={isFresh} />
+          </aside>
         </div>
-      </header>
-
-      {/* Headline */}
-      <section className="shrink-0 border-b border-line bg-panel/60 px-5 py-4">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-          <div className="flex items-baseline gap-3">
-            <span className="font-mono text-5xl font-bold tabular-nums leading-none" style={{ color: headline }}>
-              {allPending ? '–' : `${p}%`}
-            </span>
-            <span className="max-w-[15rem] text-sm leading-snug text-muted">
-              {allPending
-                ? 'attribution pending for every edit in this session'
-                : 'of changed lines influenced by untrusted input'}
-            </span>
-          </div>
-          <div className="min-w-[280px] flex-1">
-            <SplitBar split={split} height={12} />
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs">
-              {(['red', 'amber', 'green', 'pending'] as const).map((k) =>
-                k === 'pending' && counts.pending === 0 ? null : (
-                  <span key={k} className="flex items-center gap-1.5 text-muted" title={VERDICT_HINT[k]}>
-                    <span className="size-2 rounded-sm" style={{ background: verdictVar[k] }} />
-                    <span style={{ color: counts[k] ? verdictVar[k] : undefined }}>{VERDICT_LABEL[k]}</span>
-                    <span className="tabular-nums text-fg">{counts[k]}</span>
-                    <span className="text-faint">edit{counts[k] === 1 ? '' : 's'} · {split[k]} lines</span>
-                  </span>
-                ),
-              )}
-            </div>
-          </div>
-          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-line-2 bg-panel px-3 py-2 text-sm hover:border-faint">
-            <span
-              className={`relative h-5 w-9 rounded-full transition-colors ${untrustedOnly ? 'bg-v-red' : 'bg-line-2'}`}
-            >
-              <span
-                className={`absolute top-0.5 size-4 rounded-full bg-fg transition-all ${untrustedOnly ? 'left-[18px]' : 'left-0.5'}`}
-              />
-            </span>
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={untrustedOnly}
-              onChange={(e) => setUntrustedOnly(e.target.checked)}
-            />
-            Untrusted only
-          </label>
-        </div>
-      </section>
-
-      <div className="flex min-h-0 flex-1">
-        {/* Timeline */}
-        <aside className="scroll-thin w-[360px] shrink-0 overflow-y-auto border-r border-line bg-panel/40">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-panel/95 px-4 py-2 backdrop-blur">
-            <h2 className="m-0 font-mono text-[11px] font-semibold uppercase tracking-wider text-faint">
-              What the agent read
-            </h2>
-            <span className="font-mono text-[11px] text-faint">
-              {visibleContexts.length} input{visibleContexts.length === 1 ? '' : 's'}
-            </span>
-          </div>
-          <div className="py-2">
-            <Timeline
-              items={timeline}
-              influence={influence}
-              highlighted={highlighted}
-              selectedWrite={selectedId}
-              onSelectWrite={selectWrite}
-            />
-          </div>
-        </aside>
-
-        {/* Files */}
-        <main
-          className="scroll-thin min-w-0 flex-1 overflow-y-auto p-5 transition-[padding]"
-          style={{ paddingRight: selected ? 540 : undefined }}
-        >
-          {files.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-line-2 p-10 text-center text-muted">
-              {untrustedOnly ? 'No edits influenced by untrusted input.' : 'No edits in this session yet.'}
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {files.map((f) => (
-                <FileCard
-                  key={f.path}
-                  path={f.path}
-                  worst={f.worst}
-                  writes={f.writes}
-                  ctxMap={ctxMap}
-                  selectedId={selectedId}
-                  onSelect={selectWrite}
-                />
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
-
-      {selected && <DetailPanel write={selected} contexts={ctxMap} onClose={close} />}
+      </main>
     </div>
   )
 }
 
-function FileCard({
-  path,
-  worst,
-  writes,
-  ctxMap,
-  selectedId,
-  onSelect,
-}: {
-  path: string
-  worst: VerdictOrPending
-  writes: WriteEvent[]
-  ctxMap: Map<string, ContextEvent>
-  selectedId: string | null
-  onSelect: (id: string) => void
-}) {
-  const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : ''
-  const name = path.slice(dir.length)
+function SectionTitle({ id, verdict, count }: { id: string; verdict: VerdictOrPending; count: number }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-line bg-panel">
-      <header className="flex items-center gap-3 border-b border-line bg-panel-2 px-4 py-2.5">
-        <span className="size-2.5 rounded-full" style={{ background: verdictVar[worst] }} />
-        <span className="min-w-0 truncate font-mono text-[13px]">
-          <span className="text-muted">{dir}</span>
-          <span className="font-semibold text-fg">{name}</span>
+    <h2 id={id} className="m-0 mb-4 flex items-center gap-3 text-xl font-semibold" style={{ color: verdictVar[verdict] }}>
+      {SECTION[verdict].title}
+      <span className="rounded-full bg-panel-2 px-2.5 py-0.5 text-base tabular-nums text-fg">{count}</span>
+    </h2>
+  )
+}
+
+function GreenSection({
+  writes,
+  ctx,
+  cwd,
+  isFresh,
+}: {
+  writes: WriteEvent[]
+  ctx: Map<string, ContextEvent>
+  cwd: string | null
+  isFresh: (id: string) => boolean
+}) {
+  const files = [...new Set(writes.map((w) => w.file_path.split('/').pop()))]
+  return (
+    <details className="group rounded-xl border border-line bg-panel">
+      <summary className="flex min-h-16 cursor-pointer select-none flex-wrap items-center gap-x-4 gap-y-1 rounded-xl px-5 py-4 hover:bg-panel-2">
+        <span aria-hidden className="text-xl text-muted transition-transform duration-150 group-open:rotate-90">
+          ›
         </span>
-        <span className="ml-auto font-mono text-[11px] text-faint">
-          {writes.length} edit{writes.length === 1 ? '' : 's'}
+        <span className="text-xl font-semibold" style={{ color: verdictVar.green }}>
+          {SECTION.green.title}
         </span>
-      </header>
-      {writes.map((w) => (
-        <Hunk key={w.id} write={w} contexts={ctxMap} selected={selectedId === w.id} onSelect={() => onSelect(w.id)} />
+        <span className="rounded-full bg-panel-2 px-2.5 py-0.5 text-base tabular-nums">{writes.length}</span>
+        <span className="min-w-0 flex-1 truncate text-[15px] text-muted">
+          Matches what you asked for · {files.join(', ')}
+        </span>
+        <span className="text-sm text-muted group-open:hidden">Show</span>
+        <span className="hidden text-sm text-muted group-open:inline">Hide</span>
+      </summary>
+      <div className="space-y-5 px-5 pb-5">
+        {writes.map((w) => (
+          <EditCard key={w.id} write={w} ctx={ctx} cwd={cwd} fresh={isFresh(w.id)} />
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function Summary({
+  tone,
+  lines,
+  groups,
+  contexts,
+  agent,
+  cwd,
+  startedAt,
+}: {
+  tone: VerdictOrPending
+  lines: string[]
+  groups: Record<VerdictOrPending, WriteEvent[]>
+  contexts: ContextEvent[]
+  agent: string
+  cwd: string | null
+  startedAt: number
+}) {
+  const c = verdictVar[tone]
+  const outside = contexts.filter((x) => x.trust === 'untrusted').length
+  const [first, ...rest] = lines
+  return (
+    <section
+      aria-label="Summary"
+      className="rounded-2xl border bg-panel p-6 md:p-8"
+      style={{
+        borderColor: `color-mix(in oklab, ${c} 45%, var(--color-line))`,
+        backgroundImage: `linear-gradient(135deg, color-mix(in oklab, ${c} 9%, transparent), transparent 60%)`,
+      }}
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px]">
+        <span className="font-semibold text-fg">{repoName(cwd)}</span>
+        <span className="text-faint">·</span>
+        <AgentName agent={agent} />
+        <span className="text-faint">·</span>
+        <span className="text-muted">
+          started <Ago ts={startedAt} />
+        </span>
+      </div>
+      <p className="m-0 max-w-[60ch] text-[26px] font-semibold leading-tight text-balance md:text-[30px]">{first}</p>
+      {rest.map((l, i) => (
+        <p
+          // biome-ignore lint/suspicious/noArrayIndexKey: sentences are positional
+          key={i}
+          className="m-0 mt-2 max-w-[70ch] text-[20px] leading-snug text-pretty md:text-[22px]"
+          style={{ color: i === 0 && tone !== 'green' && tone !== 'pending' ? c : 'var(--color-muted)' }}
+        >
+          {l}
+        </p>
       ))}
+
+      <dl className="m-0 mt-7 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Stat verdict="red" n={groups.red.length} />
+        <Stat verdict="amber" n={groups.amber.length} />
+        <Stat verdict="green" n={groups.green.length} />
+        <div className="rounded-xl bg-panel-2 px-4 py-3">
+          <dt className="text-[15px] text-muted">Inputs read</dt>
+          <dd className="m-0 mt-1 flex items-baseline gap-2">
+            <span className="text-4xl font-bold tabular-nums">{contexts.length}</span>
+            {outside > 0 && <span className="text-[15px] text-outside">{outside} from outside</span>}
+          </dd>
+        </div>
+      </dl>
+      {groups.pending.length > 0 && (
+        <p className="m-0 mt-3 text-[15px] text-muted">{groups.pending.length} more still being checked.</p>
+      )}
     </section>
+  )
+}
+
+function Stat({ verdict, n }: { verdict: VerdictOrPending; n: number }) {
+  const c = verdictVar[verdict]
+  return (
+    <div
+      className="rounded-xl bg-panel-2 px-4 py-3"
+      title={VERDICT_HINT[verdict]}
+      style={n && verdict === 'red' ? { boxShadow: `inset 0 0 0 2px ${c}` } : undefined}
+    >
+      <dt>
+        <VerdictChip verdict={verdict} size="sm" />
+      </dt>
+      <dd className="m-0 mt-1 flex items-baseline gap-2">
+        <span className="text-4xl font-bold tabular-nums" style={{ color: n ? c : 'var(--color-faint)' }}>
+          {n}
+        </span>
+        <span className="text-[15px] text-muted">edit{n === 1 ? '' : 's'}</span>
+      </dd>
+    </div>
   )
 }

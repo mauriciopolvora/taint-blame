@@ -1,21 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Trust, Verdict } from '#/server/queries'
-
-export type VerdictOrPending = Verdict | 'pending'
-
-export const VERDICT_LABEL: Record<VerdictOrPending, string> = {
-  red: 'Injected',
-  amber: 'Copied',
-  green: 'Prompted',
-  pending: 'Pending',
-}
-
-export const VERDICT_HINT: Record<VerdictOrPending, string> = {
-  red: 'Carries out an instruction from untrusted content the user never asked for',
-  amber: 'Copied or adapted from outside content; looks benign',
-  green: 'Explained by the user prompt',
-  pending: 'Attribution has not run yet',
-}
+import { VERDICT_HINT, VERDICT_LABEL, type VerdictOrPending } from './explain'
+import type { LiveState } from './live'
 
 export const verdictVar: Record<VerdictOrPending, string> = {
   red: 'var(--color-v-red)',
@@ -24,136 +9,163 @@ export const verdictVar: Record<VerdictOrPending, string> = {
   pending: 'var(--color-v-pending)',
 }
 
-export const trustVar: Record<Trust, string> = {
-  trusted: 'var(--color-t-trusted)',
-  semi: 'var(--color-t-semi)',
-  untrusted: 'var(--color-t-untrusted)',
-}
+const VERDICT_ICON: Record<VerdictOrPending, string> = { red: '!', amber: '↳', green: '✓', pending: '…' }
 
-export function v(verdict: string | null | undefined): VerdictOrPending {
-  return verdict === 'red' || verdict === 'amber' || verdict === 'green' ? verdict : 'pending'
-}
-
-export function VerdictChip({ verdict, size = 'sm' }: { verdict: VerdictOrPending; size?: 'sm' | 'md' }) {
+export function VerdictChip({ verdict, size = 'md' }: { verdict: VerdictOrPending; size?: 'sm' | 'md' | 'lg' }) {
   const c = verdictVar[verdict]
+  const sz = size === 'lg' ? 'h-8 px-3 text-sm' : size === 'md' ? 'h-7 px-2.5 text-[13px]' : 'h-6 px-2 text-xs'
   return (
     <span
       title={VERDICT_HINT[verdict]}
-      className={`inline-flex items-center gap-1.5 rounded font-mono font-semibold uppercase tracking-wide ${
-        size === 'md' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-px text-[10px]'
-      }`}
-      style={{ color: c, background: `color-mix(in oklab, ${c} 14%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${c} 35%, transparent)` }}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full font-semibold ${sz}`}
+      style={{ color: c, background: `color-mix(in oklab, ${c} 16%, transparent)` }}
     >
-      <span className="size-1.5 rounded-full" style={{ background: c }} />
+      <span
+        aria-hidden
+        className="flex size-4 items-center justify-center rounded-full text-[11px] font-bold leading-none text-bg"
+        style={{ background: c }}
+      >
+        {VERDICT_ICON[verdict]}
+      </span>
       {VERDICT_LABEL[verdict]}
     </span>
   )
 }
 
-export function TrustChip({ trust }: { trust: Trust }) {
-  const c = trustVar[trust] ?? 'var(--color-muted)'
-  return (
-    <span
-      className="inline-flex items-center rounded px-1.5 py-px font-mono text-[10px] font-semibold uppercase tracking-wide"
-      style={{ color: c, background: `color-mix(in oklab, ${c} 13%, transparent)` }}
-    >
-      {trust}
-    </span>
-  )
-}
+const AGENT_NAME: Record<string, string> = { 'claude-code': 'Claude Code', pi: 'pi' }
 
-const AGENT_STYLE: Record<string, string> = {
-  'claude-code': '#d97757',
-  pi: '#7aa2f7',
-}
-
-export function AgentBadge({ agent }: { agent: string }) {
-  const c = AGENT_STYLE[agent] ?? '#8b96a5'
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-0.5 font-mono text-xs font-medium"
-      style={{ color: c, background: `color-mix(in oklab, ${c} 14%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${c} 30%, transparent)` }}
-    >
-      <span className="size-1.5 rounded-sm" style={{ background: c }} />
-      {agent}
-    </span>
-  )
-}
-
-export type Split = Record<VerdictOrPending, number>
-
-export function SplitBar({ split, height = 8, className = '' }: { split: Split; height?: number; className?: string }) {
-  const total = split.red + split.amber + split.green + split.pending
-  const order: VerdictOrPending[] = ['red', 'amber', 'green', 'pending']
-  return (
-    <div className={`flex w-full gap-px overflow-hidden rounded-full bg-line ${className}`} style={{ height }}>
-      {total > 0 &&
-        order.map((k) =>
-          split[k] > 0 ? (
-            <div
-              key={k}
-              title={`${VERDICT_LABEL[k]}: ${split[k]} lines`}
-              style={{ width: `${(split[k] / total) * 100}%`, background: verdictVar[k] }}
-            />
-          ) : null,
-        )}
-    </div>
-  )
-}
-
-export function pct(n: number, d: number): number {
-  return d === 0 ? 0 : Math.round((n / d) * 100)
+export function AgentName({ agent }: { agent: string }) {
+  return <span className="whitespace-nowrap text-muted">{AGENT_NAME[agent] ?? agent}</span>
 }
 
 export function toMs(ts: number): number {
   return ts < 1e12 ? ts * 1000 : ts
 }
 
-function fmt(ms: number, local: boolean, withDate: boolean): string {
-  const d = new Date(ms)
-  const opts: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: withDate ? undefined : '2-digit',
-    hour12: false,
-    ...(withDate ? { month: 'short', day: 'numeric' } : {}),
-    ...(local ? {} : { timeZone: 'UTC' }),
-  }
-  return d.toLocaleString('en-US', opts) + (local ? '' : ' UTC')
-}
-
-// Renders UTC on the server, local time after hydration (avoids mismatch).
 let hydrated = false
-
-export function Time({ ts, withDate = false, className = '' }: { ts: number; withDate?: boolean; className?: string }) {
-  const ms = toMs(ts)
-  const [local, setLocal] = useState(hydrated)
+function useHydrated() {
+  const [h, setH] = useState(hydrated)
   useEffect(() => {
     hydrated = true
-    setLocal(true)
+    setH(true)
+  }, [])
+  return h
+}
+
+function clock(ms: number, local: boolean, withDate: boolean) {
+  return (
+    new Date(ms).toLocaleString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: withDate ? undefined : '2-digit',
+      hour12: false,
+      ...(withDate ? { month: 'short', day: 'numeric' } : {}),
+      ...(local ? {} : { timeZone: 'UTC' }),
+    }) + (local ? '' : ' UTC')
+  )
+}
+
+// Server renders UTC, the client switches to local time after hydration.
+export function Time({ ts, withDate = false, className = '' }: { ts: number; withDate?: boolean; className?: string }) {
+  const ms = toMs(ts)
+  const local = useHydrated()
+  return (
+    <time dateTime={new Date(ms).toISOString()} className={`tabular-nums ${className}`}>
+      {clock(ms, local, withDate)}
+    </time>
+  )
+}
+
+function ago(ms: number, now: number): string {
+  const s = Math.max(0, Math.round((now - ms) / 1000))
+  if (s < 45) return 'just now'
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m} min ago`
+  const h = Math.round(m / 60)
+  if (h < 24) return `${h} h ago`
+  const d = Math.round(h / 24)
+  return d === 1 ? 'yesterday' : `${d} days ago`
+}
+
+// "5 min ago" once hydrated; absolute time on the server.
+export function Ago({ ts, className = '' }: { ts: number; className?: string }) {
+  const ms = toMs(ts)
+  const local = useHydrated()
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(t)
   }, [])
   return (
-    <time dateTime={new Date(ms).toISOString()} className={className}>
-      {fmt(ms, local, withDate)}
+    <time dateTime={new Date(ms).toISOString()} title={clock(ms, local, true)} className={className}>
+      {local ? ago(ms, now) : clock(ms, false, true)}
     </time>
   )
 }
 
 export function repoName(cwd: string | null): string {
-  if (!cwd) return 'unknown'
+  if (!cwd) return 'unknown repo'
   const parts = cwd.replace(/\/+$/, '').split(/[\\/]/)
   return parts[parts.length - 1] || cwd
 }
 
 export function Logo() {
   return (
-    <a href="/" className="flex items-center gap-2.5 text-fg no-underline">
+    <a href="/" className="flex items-center gap-2.5 rounded-md text-fg no-underline">
       <span className="flex h-6 items-stretch gap-[3px]" aria-hidden>
         <span className="w-[5px] rounded-sm bg-v-green" />
         <span className="w-[5px] rounded-sm bg-v-amber" />
         <span className="w-[5px] rounded-sm bg-v-red" />
       </span>
-      <span className="font-mono text-[15px] font-semibold tracking-tight">taint blame</span>
+      <span className="text-lg font-semibold tracking-tight">Taint Blame</span>
     </a>
+  )
+}
+
+const LIVE_TEXT: Record<LiveState, string> = { live: 'Live', paused: 'Paused', offline: 'Reconnecting' }
+
+export function LiveBadge({ state }: { state: LiveState }) {
+  const c = state === 'live' ? 'var(--color-v-green)' : state === 'offline' ? 'var(--color-v-amber)' : 'var(--color-muted)'
+  return (
+    <span
+      className="inline-flex items-center gap-2 rounded-full border border-line-2 px-3 py-1 text-sm text-muted"
+      title={state === 'live' ? 'Updates every few seconds while this tab is open' : 'Updates resume when you return to this tab'}
+      aria-live="polite"
+    >
+      <span className={`relative flex size-2.5 ${state === 'live' ? 'live-dot' : ''}`} style={{ color: c }}>
+        <span className="size-2.5 rounded-full" style={{ background: c }} />
+      </span>
+      {LIVE_TEXT[state]}
+    </span>
+  )
+}
+
+export function Header({ live, children }: { live: LiveState; children?: React.ReactNode }) {
+  return (
+    <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-6">
+        <Logo />
+        {children}
+        <div className="ml-auto">
+          <LiveBadge state={live} />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export function Legend({ className = '' }: { className?: string }) {
+  const items: VerdictOrPending[] = ['red', 'amber', 'green']
+  return (
+    <dl className={`grid gap-4 sm:grid-cols-3 ${className}`}>
+      {items.map((k) => (
+        <div key={k} className="flex items-start gap-3">
+          <dt>
+            <VerdictChip verdict={k} />
+          </dt>
+          <dd className="m-0 pt-0.5 text-[15px] leading-snug text-muted">{VERDICT_HINT[k]}.</dd>
+        </div>
+      ))}
+    </dl>
   )
 }
