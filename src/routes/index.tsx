@@ -1,15 +1,14 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { basename } from '#/components/explain'
+import { VERDICT_HINT, type VerdictOrPending, basename } from '#/components/explain'
 import { useArrivals, useLiveRefresh } from '#/components/live'
-import { AgentName, Ago, Header, Legend, repoName } from '#/components/ui'
+import { AppShell, PAGE, PageHeader } from '#/components/shell'
+import { AgentName, Ago, VerdictChip, repoName } from '#/components/ui'
 import { type SessionSummary, listSessions } from '#/server/queries'
 
 export const Route = createFileRoute('/')({
   loader: () => listSessions(),
   component: Home,
 })
-
-const WIDTH = 'max-w-[1200px]'
 
 function Home() {
   const sessions = Route.useLoaderData()
@@ -18,27 +17,20 @@ function Home() {
   const injected = sessions.filter((s) => s.red > 0).length
 
   return (
-    <div className="min-h-screen">
-      <Header live={live.state} width={WIDTH} />
+    <AppShell>
+      <PageHeader
+        title="Sessions"
+        description="Git blame for code your AI agent wrote: every edit, traced back to the input that caused it."
+        live={live.state}
+      />
 
-      <main className={`mx-auto px-6 pb-32 ${WIDTH}`}>
-        <section className="pt-16 pb-12 md:pt-20">
-          <p className="label m-0">Prompt-injection forensics for coding agents</p>
-          <h1 className="m-0 mt-4 max-w-[20ch] text-[40px] leading-[1.08] font-semibold tracking-[-0.032em] text-balance md:text-[52px]">
-            Git blame for code your AI agent wrote.
-          </h1>
-          <p className="m-0 mt-5 max-w-[52ch] text-[18px] leading-relaxed text-muted text-pretty">
-            Scanners try to block prompt injection. We assume it gets through and show you{' '}
-            <span className="font-medium text-fg">exactly which lines it wrote.</span>
-          </p>
-        </section>
+      <main className={`${PAGE} pt-6 pb-24`}>
+        <LegendCompact />
 
-        <Legend />
-
-        <section aria-labelledby="sessions" className="mt-16">
+        <section aria-labelledby="sessions" className="mt-6">
           <div className="mb-3 flex items-baseline gap-3">
-            <h2 id="sessions" className="m-0 text-[15px] font-semibold text-fg">
-              Sessions
+            <h2 id="sessions" className="m-0 text-[14px] font-semibold text-fg">
+              All sessions
             </h2>
             {sessions.length > 0 && <span className="text-sm text-faint tabular-nums">{sessions.length}</span>}
             {injected > 0 && (
@@ -50,7 +42,26 @@ function Home() {
           {sessions.length === 0 ? <EmptyState /> : <SessionList sessions={sessions} isFresh={isFresh} />}
         </section>
       </main>
-    </div>
+    </AppShell>
+  )
+}
+
+// The three verdicts on one line each side by side, small enough to sit above the table.
+function LegendCompact() {
+  const items: VerdictOrPending[] = ['red', 'amber', 'green']
+  return (
+    <dl className="m-0 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+      {items.map((k) => (
+        <div key={k} className="flex items-baseline gap-2.5 bg-panel px-4 py-2.5">
+          <dt className="shrink-0">
+            <VerdictChip verdict={k} size="md" />
+          </dt>
+          <dd className="m-0 min-w-0 text-[13px] leading-snug text-muted">
+            {VERDICT_HINT[k]}
+          </dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 

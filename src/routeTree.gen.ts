@@ -10,13 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiAttributeRouteImport } from './routes/api/attribute'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
+import { Route as ApiResetRouteImport } from './routes/api/reset'
+import { Route as ApiVerifyRouteImport } from './routes/api/verify'
 import { Route as SessionsIdRouteImport } from './routes/sessions/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAttributeRoute = ApiAttributeRouteImport.update({
@@ -29,6 +37,16 @@ const ApiEventsRoute = ApiEventsRouteImport.update({
   path: '/api/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiResetRoute = ApiResetRouteImport.update({
+  id: '/api/reset',
+  path: '/api/reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVerifyRoute = ApiVerifyRouteImport.update({
+  id: '/api/verify',
+  path: '/api/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionsIdRoute = SessionsIdRouteImport.update({
   id: '/sessions/$id',
   path: '/sessions/$id',
@@ -37,35 +55,69 @@ const SessionsIdRoute = SessionsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
   '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
+  '/api/reset': typeof ApiResetRoute
+  '/api/verify': typeof ApiVerifyRoute
   '/sessions/$id': typeof SessionsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
   '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
+  '/api/reset': typeof ApiResetRoute
+  '/api/verify': typeof ApiVerifyRoute
   '/sessions/$id': typeof SessionsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
   '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
+  '/api/reset': typeof ApiResetRoute
+  '/api/verify': typeof ApiVerifyRoute
   '/sessions/$id': typeof SessionsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/attribute' | '/api/events' | '/sessions/$id'
+  fullPaths:
+    | '/'
+    | '/settings'
+    | '/api/attribute'
+    | '/api/events'
+    | '/api/reset'
+    | '/api/verify'
+    | '/sessions/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/attribute' | '/api/events' | '/sessions/$id'
-  id: '__root__' | '/' | '/api/attribute' | '/api/events' | '/sessions/$id'
+  to:
+    | '/'
+    | '/settings'
+    | '/api/attribute'
+    | '/api/events'
+    | '/api/reset'
+    | '/api/verify'
+    | '/sessions/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/settings'
+    | '/api/attribute'
+    | '/api/events'
+    | '/api/reset'
+    | '/api/verify'
+    | '/sessions/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SettingsRoute: typeof SettingsRoute
   ApiAttributeRoute: typeof ApiAttributeRoute
   ApiEventsRoute: typeof ApiEventsRoute
+  ApiResetRoute: typeof ApiResetRoute
+  ApiVerifyRoute: typeof ApiVerifyRoute
   SessionsIdRoute: typeof SessionsIdRoute
 }
 
@@ -76,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/attribute': {
@@ -92,6 +151,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/reset': {
+      id: '/api/reset'
+      path: '/api/reset'
+      fullPath: '/api/reset'
+      preLoaderRoute: typeof ApiResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/verify': {
+      id: '/api/verify'
+      path: '/api/verify'
+      fullPath: '/api/verify'
+      preLoaderRoute: typeof ApiVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sessions/$id': {
       id: '/sessions/$id'
       path: '/sessions/$id'
@@ -104,8 +177,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SettingsRoute: SettingsRoute,
   ApiAttributeRoute: ApiAttributeRoute,
   ApiEventsRoute: ApiEventsRoute,
+  ApiResetRoute: ApiResetRoute,
+  ApiVerifyRoute: ApiVerifyRoute,
   SessionsIdRoute: SessionsIdRoute,
 }
 export const routeTree = rootRouteImport

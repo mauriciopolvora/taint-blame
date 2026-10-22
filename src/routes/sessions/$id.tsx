@@ -1,10 +1,12 @@
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
+import { useEffect, useMemo, useState } from 'react'
 import { EditCard } from '#/components/EditCard'
 import { InputTimeline } from '#/components/InputTimeline'
 import { VERDICT_HINT, type VerdictOrPending, sessionSummary, v } from '#/components/explain'
 import { useArrivals, useLiveRefresh } from '#/components/live'
-import { AgentName, Ago, Header, VerdictChip, repoName, verdictVar } from '#/components/ui'
+import { AppShell, Button, ConfirmDialog, PAGE, PageHeader, toast } from '#/components/shell'
+import { readToken, resetSessions } from '#/components/token'
+import { AgentName, Ago, VerdictChip, repoName, verdictVar } from '#/components/ui'
 import { type ContextEvent, type WriteEvent, getSession } from '#/server/queries'
 
 export const Route = createFileRoute('/sessions/$id')({
@@ -52,31 +54,45 @@ function SessionPage() {
         : 'green'
 
   return (
-    <div className="min-h-screen">
-      <Header live={live.state}>
-        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-[14px]">
-          <span className="text-line-2" aria-hidden>
-            /
+    <AppShell>
+      <PageHeader
+        crumbs={
+          <>
+            <Link to="/" className="rounded text-muted no-underline hover:text-fg">
+              Sessions
+            </Link>
+            <span className="text-line-2" aria-hidden>
+              /
+            </span>
+            <span className="truncate font-medium text-fg">{repoName(session.cwd)}</span>
+          </>
+        }
+        title={repoName(session.cwd)}
+        description={
+          <span className="inline-flex flex-wrap items-center gap-x-2">
+            <AgentName agent={session.agent} />
+            <span className="text-faint">·</span>
+            <span>
+              started <Ago ts={session.started_at} />
+            </span>
+            {session.cwd && (
+              <>
+                <span className="text-faint">·</span>
+                <span className="code text-[12.5px] text-faint">{session.cwd}</span>
+              </>
+            )}
           </span>
-          <Link to="/" className="rounded text-muted no-underline hover:text-fg">
-            Sessions
-          </Link>
-          <span className="text-line-2" aria-hidden>
-            /
-          </span>
-          <span className="truncate font-medium text-fg">{repoName(session.cwd)}</span>
-        </nav>
-      </Header>
+        }
+        live={live.state}
+        actions={<DeleteSession id={session.id} />}
+      />
 
-      <main className="mx-auto max-w-[1440px] px-6 pt-10 pb-24">
+      <main className={`${PAGE} pt-8 pb-24`}>
         <Summary
           tone={tone}
           lines={summary}
           groups={groups}
           contexts={contexts}
-          agent={session.agent}
-          cwd={session.cwd}
-          startedAt={session.started_at}
         />
 
         <div className="mt-12 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -103,12 +119,58 @@ function SessionPage() {
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-24">
+          <aside className="lg:sticky lg:top-6">
             <InputTimeline contexts={contexts} writes={writes} ctxMap={ctxMap} cwd={session.cwd} isFresh={isFresh} />
           </aside>
         </div>
       </main>
-    </div>
+    </AppShell>
+  )
+}
+
+function DeleteSession({ id }: { id: string }) {
+  const navigate = useNavigate()
+  const [token, setToken] = useState('')
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => setToken(readToken()), [])
+
+  const confirm = async () => {
+    setBusy(true)
+    setError(null)
+    const res = await resetSessions(token, id)
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
+    setOpen(false)
+    await navigate({ to: '/' })
+    toast('Session deleted')
+  }
+
+  return (
+    <>
+      <Button
+        tone="danger"
+        disabled={!token}
+        title={token ? 'Delete this session and everything recorded in it' : 'Save your API token in Settings to delete sessions'}
+        onClick={() => {
+          setError(null)
+          setOpen(true)
+        }}
+      >
+        Delete session
+      </Button>
+      <ConfirmDialog
+        open={open}
+        title="Delete this session?"
+        body="Its inputs, edits and verdicts are removed for good. The agent keeps working; new events start a fresh session."
+        action="Delete session"
+        busy={busy}
+        error={error}
+        onConfirm={confirm}
+        onClose={() => setOpen(false)}
+      />
+    </>
   )
 }
 
@@ -163,32 +225,17 @@ function Summary({
   lines,
   groups,
   contexts,
-  agent,
-  cwd,
-  startedAt,
 }: {
   tone: VerdictOrPending
   lines: string[]
   groups: Record<VerdictOrPending, WriteEvent[]>
   contexts: ContextEvent[]
-  agent: string
-  cwd: string | null
-  startedAt: number
 }) {
   const outside = contexts.filter((x) => x.trust === 'untrusted').length
   const [first, ...rest] = lines
   return (
     <section aria-label="Summary">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-muted">
-        <span className="font-medium text-fg">{repoName(cwd)}</span>
-        <span className="text-faint">·</span>
-        <AgentName agent={agent} />
-        <span className="text-faint">·</span>
-        <span>
-          started <Ago ts={startedAt} />
-        </span>
-      </div>
-      <p className="m-0 mt-4 max-w-[34ch] text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] text-balance md:text-[36px]">
+      <p className="m-0 max-w-[34ch] text-[30px] font-semibold leading-[1.15] tracking-[-0.025em] text-balance md:text-[36px]">
         {first}
       </p>
       {rest.map((l, i) => (
