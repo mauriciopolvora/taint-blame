@@ -138,6 +138,26 @@ function oneLine(s: string, max = 120): string {
 	return t.length > max ? `${t.slice(0, max)}...` : t;
 }
 
+function clip(s: string, n: number): string {
+	return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
+// The sentence of the source that carries the copied fragment, i.e. the hidden instruction.
+function hiddenSentence(content: string, fragment: string): string {
+	const text = content
+		.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(Number.parseInt(h, 16)))
+		.replace(/\\n/g, "\n")
+		.replace(/\\"/g, '"');
+	const at = text.indexOf(fragment);
+	if (at < 0) return "";
+	const before = text.slice(0, at);
+	const sentenceEnd = Math.max(before.lastIndexOf(". "), before.lastIndexOf(".\n"), before.lastIndexOf("\n\n"));
+	const start = Math.max(before.lastIndexOf("<!--") + 4, sentenceEnd + 1, 0);
+	const snippet = text.slice(start, at).replace(/^[-!<\s]+/, "").replace(/\s+/g, " ").trim();
+	// Drop the start of the copied code itself, e.g. the trailing ": fetch('".
+	return clip(snippet.replace(/:\s*\S{0,20}$/, "").replace(/[:\s]+$/, ""), 170);
+}
+
 export default async function taintBlame(pi: any) {
 	const client = await loadClient();
 	if (!client) return;
@@ -234,14 +254,21 @@ export default async function taintBlame(pi: any) {
 	// Returns a block result when the guard stops the call, otherwise undefined. Fails open.
 	async function guard(event: any, ctx: any): Promise<{ block: true; reason: string } | undefined> {
 		if (!overlap || seen.length === 0) return undefined;
-		let hit: { fragment: string; where: string; file: string } | undefined;
+		let hit: { fragment: string; where: string; file: string; line: string; instruction: string } | undefined;
 		try {
 			for (const w of pendingWrites(event)) {
 				const red = overlap(w, seen).find((f) => f.verdict === "red");
 				if (!red) continue;
 				const ctxIn = seen.find((c) => c.id === red.context_id);
 				const where = ctxIn ? describeSource(ctxIn.source, ctxIn.source_ref, cwd) : "untrusted content";
-				hit = { fragment: oneLine(red.fragment), where, file: relative(cwd, w.file_path) || w.file_path };
+				const line = w.new_text.split("\n").find((l) => l.includes(red.fragment))?.trim() || red.fragment;
+				hit = {
+					fragment: oneLine(red.fragment),
+					where,
+					file: relative(cwd, w.file_path) || w.file_path,
+					line: clip(oneLine(line), 100),
+					instruction: ctxIn ? hiddenSentence(ctxIn.content, red.fragment) : "",
+				};
 				break;
 			}
 		} catch (err) {
@@ -252,8 +279,22 @@ export default async function taintBlame(pi: any) {
 
 		const summary = `this ${event.toolName} to ${hit.file} copies \`${hit.fragment}\` from ${hit.where}, next to an instruction you never gave.`;
 		try {
-			if (ctx?.hasUI && typeof ctx.ui?.confirm === "function") {
-				const allowed = await ctx.ui.confirm("Taint Blame", `${summary[0].toUpperCase()}${summary.slice(1)}\n\nAllow it?`);
+			if (ctx?.hasUI && typeof ctx.ui?.select === "function") {
+				const BLOCK = "Block this edit (recommended)";
+				const message = [
+					"⚠  Taint Blame: possible prompt injection",
+					"",
+					`The agent wants to add this to ${hit.file}:`,
+					`    ${hit.line}`,
+					"",
+					`You didn't ask for that. It comes from ${hit.where}, which the agent read:`,
+					hit.instruction ? `    "${hit.instruction}"` : `    contains \`${hit.fragment}\``,
+					"",
+					"Block it, or allow it anyway?",
+				].join("\n");
+				// Escape counts as block.
+				const choice = await ctx.ui.select(message, [BLOCK, "Allow it anyway"]);
+				const allowed = choice !== undefined && choice !== BLOCK;
 				if (allowed) {
 					ctx.ui.notify?.(`Taint Blame: allowed ${event.toolName} to ${hit.file} after confirmation.`, "warning");
 					return undefined;
