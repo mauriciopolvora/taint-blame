@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
-  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: "Inter", "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
-  /* Surfaces: dark, with enough step between layers to survive a projector. */
-  --color-bg: #0a0d12;
-  --color-panel: #121821;
-  --color-panel-2: #1a212c;
-  --color-code: #0d1117;
-  --color-line: #263040;
-  --color-line-2: #344052;
+  /* Surfaces: near-black, layered by a few percent of white. */
+  --color-bg: #08090a;
+  --color-panel: #0f1012;
+  --color-panel-2: #17181b;
+  --color-code: #0b0c0e;
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-line-2: rgb(255 255 255 / 0.14);
 
   /* Text */
-  --color-fg: #eef2f6;
-  --color-muted: #a7b1bf;
-  --color-faint: #808b9a;
-  --color-link: #8cc4ff;
+  --color-fg: #f7f8f8;
+  --color-muted: #9ca0a8;
+  --color-faint: #6b7079;
+  --color-link: #8b93ff;
 
   /* Verdicts: one color, one meaning. */
-  --color-v-red: #ff6b66;
-  --color-v-amber: #f5bd4f;
-  --color-v-green: #4fd67a;
-  --color-v-pending: #9aa4b2;
+  --color-v-red: #ff6369;
+  --color-v-amber: #f2b84b;
+  --color-v-green: #4cc38a;
+  --color-v-pending: #8a8f98;
 
   /* Content that came from outside the user and their repo. */
-  --color-outside: #c7a8ff;
-  --color-del: rgb(167 177 191 / 0.07);
+  --color-outside: #b4a7ff;
+  --color-del: rgb(255 255 255 / 0.05);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -48,11 +48,19 @@ body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
+  font-feature-settings: "cv01", "cv11", "ss03";
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.022em;
 }
 
 ::selection {
-  background: #2f4a7a;
+  background: rgb(139 147 255 / 0.35);
 }
 
 :focus-visible {
@@ -181,4 +189,22 @@ li.enter {
     opacity: 0;
     transform: scale(2.6);
   }
+}
+
+/* Landing hero glow: one soft light source, nothing else. */
+.hero-glow {
+  position: absolute;
+  inset: -12rem 0 auto;
+  height: 36rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 50% 45% at 50% 30%, rgb(139 147 255 / 0.10), transparent 70%),
+    radial-gradient(ellipse 30% 30% at 62% 38%, rgb(255 99 105 / 0.06), transparent 70%);
+}
+
+.text-gradient {
+  background: linear-gradient(180deg, #f7f8f8 30%, rgb(247 248 248 / 0.7));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
