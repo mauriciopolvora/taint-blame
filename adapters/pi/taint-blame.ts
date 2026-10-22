@@ -2,7 +2,7 @@
 // Records what the agent read (prompt, files, command output, tool results) and what it wrote,
 // and posts both to the Taint Blame server. Never throws. Blocks a tool call only in guard mode
 // (TAINT_BLAME_GUARD=1), and only when an edit copies an instruction hidden in untrusted content.
-// `/taint-blame` shows status and switches the guard and recording on/off (persisted to config.env).
+// `/taint-blame` shows status and switches the guard and recording on/off (persisted to the repo's .taint-blame/config.env).
 
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -17,8 +17,17 @@ const AGENT = "pi";
 const MAX_REF = 2000;
 const MAX_PREV_BYTES = 1024 * 1024;
 
+// Everything local lives in the repo's own .taint-blame/ (gitignored), found from this file's real path.
+const LOCAL_DIR = (() => {
+	try {
+		return resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", ".taint-blame");
+	} catch {
+		return join(process.cwd(), ".taint-blame");
+	}
+})();
+
 function configPath(): string {
-	return join(homedir(), ".taint-blame", "config.env");
+	return join(LOCAL_DIR, "config.env");
 }
 
 // Same KEY=value parser for the config file, used for the guard and record switches.
@@ -531,7 +540,7 @@ export default async function taintBlame(pi: any) {
 		if (on && !overlap) overlap = await loadOverlap();
 		const err = writeConfigKey("guard", on ? "on" : "off");
 		refreshStatus();
-		const saved = err ? ` (not saved: ${err})` : ` (saved to ${configPath().replace(homedir(), "~")})`;
+		const saved = err ? ` (not saved: ${err})` : ` (saved to ${configPath()})`;
 		const env =
 			process.env.TAINT_BLAME_GUARD !== undefined ? ". TAINT_BLAME_GUARD is set and still wins at the next start" : "";
 		const unavailable = on && !overlap ? ". overlap() could not be loaded, so edits are not checked" : "";
@@ -542,7 +551,7 @@ export default async function taintBlame(pi: any) {
 		recording = on;
 		const err = writeConfigKey("record", on ? "on" : "off");
 		refreshStatus();
-		const saved = err ? ` (not saved: ${err})` : ` (saved to ${configPath().replace(homedir(), "~")})`;
+		const saved = err ? ` (not saved: ${err})` : ` (saved to ${configPath()})`;
 		say(ctx, `Taint Blame recording ${on ? "on" : "paused"}${saved}`);
 	}
 

@@ -16,3 +16,4 @@ todos.json
 !.env.example
 !.dev.vars.example
 !.dev.vars.example
+.taint-blame/

@@ -181,13 +181,13 @@ function EmptyState() {
         </p>
       </div>
       <ul className="mx-auto mt-10 grid max-w-[1000px] list-none gap-px overflow-hidden rounded-md border border-line bg-line p-0 md:grid-cols-2">
-        <Step title="Install" hint="Loads in every pi session" cmd="adapters/pi/install.sh" />
+        <Step title="Run pi" hint="From any project, loads the extension from this repo" cmd="~/Developer/taint-blame/bin/pi" />
         <Step title="Settings" hint="Status, guard and recording, inside pi" cmd="/taint-blame" />
       </ul>
       <p className="mx-auto m-0 mt-6 max-w-[1000px] text-center text-[13px] leading-relaxed text-faint">
         The extension reads <code className="code whitespace-nowrap text-muted">TAINT_BLAME_URL</code> and{' '}
         <code className="code whitespace-nowrap text-muted">TAINT_BLAME_TOKEN</code> from{' '}
-        <code className="code whitespace-nowrap text-muted">~/.taint-blame/config.env</code>.
+        <code className="code whitespace-nowrap text-muted">.taint-blame/config.env</code> in the repo.
       </p>
     </div>
   )

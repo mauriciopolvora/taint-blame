@@ -12,15 +12,15 @@ A pi extension (`taint-blame.ts`) that sends what the agent read and wrote to Ta
 | `tool_result` edit | one `write` per `edits[]` entry (ts +1 ms each) |
 | `tool_result` write | `write`, `old_text` = file content captured in `tool_call` before the write, or `""` for a new file |
 
-The session id is pi's own session id (`ctx.sessionManager.getSessionId()`, a UUIDv7). It also works with `--no-session`. Sends are fire-and-forget. `agent_settled` and `session_shutdown` wait for in-flight sends, so `pi -p` does not exit before they finish. Failed sends go to `~/.taint-blame/queue.jsonl` and are retried at the next `session_start`.
+The session id is pi's own session id (`ctx.sessionManager.getSessionId()`, a UUIDv7). It also works with `--no-session`. Sends are fire-and-forget. `agent_settled` and `session_shutdown` wait for in-flight sends, so `pi -p` does not exit before they finish. Failed sends go to `.taint-blame/queue.jsonl (in this repo)` and are retried at the next `session_start`.
 
 ## Install
 
 ```sh
-adapters/pi/install.sh
+bin/pi
 ```
 
-This symlinks `~/.pi/agent/extensions/taint-blame.ts` to this file, so the extension loads in every pi session without `-e` (run `/reload` in a session that is already open). If `~/.taint-blame/config.env` does not exist, it also writes it from the repo's `.env.adapter` (mode 600). The extension finds `../shared/client.mjs` through the symlink's real path, so it must stay a symlink, not a copy.
+Nothing is installed globally. Run pi through the repo's launcher, from any project: `~/Developer/taint-blame/bin/pi` (it runs `pi -e <repo>/adapters/pi/taint-blame.ts` and passes every other argument through). Settings and the retry queue live in this repo's `.taint-blame/` (gitignored).
 
 To load it for one run instead: `pi -e /path/to/taint-blame/adapters/pi/taint-blame.ts ...` (not both: with the symlink installed, `-e` would load it a second time).
 
@@ -30,7 +30,7 @@ To load it for one run instead: `pi -e /path/to/taint-blame/adapters/pi/taint-bl
 |---|---|
 | `/taint-blame` | Interactive: a menu (status, guard on/off, pause/resume recording, open dashboard). Print mode: same as `status`. |
 | `/taint-blame status` | Recording on/paused, guard on/off, server host, this session's counts (inputs recorded, inputs from outside, edits sent, edits blocked by the guard), and the dashboard link `${TAINT_BLAME_URL}/sessions/<session id>`. |
-| `/taint-blame guard on\|off\|toggle` | Switches the guard for this session right away and saves `guard=on\|off` in `~/.taint-blame/config.env`. |
+| `/taint-blame guard on\|off\|toggle` | Switches the guard for this session right away and saves `guard=on\|off` in `.taint-blame/config.env (in this repo)`. |
 | `/taint-blame record on\|off` | Resumes or pauses sending events, and saves `record=on\|off`. While paused nothing is sent, but the guard still sees this session's inputs. |
 | `/taint-blame open` | Opens this session's dashboard page in the browser (`open` on macOS, `xdg-open` on Linux) and prints the link. |
 
@@ -47,7 +47,7 @@ pi -p --no-session "/taint-blame guard on" < /dev/null
 
 ## Guard mode
 
-Off by default. Turn it on with `/taint-blame guard on`, `TAINT_BLAME_GUARD=1`, or a `guard=1` (or `guard=on`) line in `~/.taint-blame/config.env`. At startup the environment variable wins over the file; `/taint-blame guard ...` still switches it live for the session.
+Off by default. Turn it on with `/taint-blame guard on`, `TAINT_BLAME_GUARD=1`, or a `guard=1` (or `guard=on`) line in `.taint-blame/config.env (in this repo)`. At startup the environment variable wins over the file; `/taint-blame guard ...` still switches it live for the session.
 
 The extension keeps this session's inputs in memory (also while the guard is off, so turning it on mid-session covers what was already read) (the same redacted, capped content it sends). On `tool_call` for `edit` and `write`, it builds the would-be writes (each `oldText`/`newText` pair, or the file's current content against the new content) and runs the server's `overlap()` from `src/server/attribution/overlap.ts` against them. The check is local: no network, no LLM. If any finding is `red` (the edit copies a fragment of untrusted content that sits next to an instruction the user never gave):
 
@@ -71,7 +71,7 @@ In 6 guarded runs with `gpt-4o-mini`, every attempt to add the ping was blocked 
 
 ## Config
 
-`TAINT_BLAME_URL` and `TAINT_BLAME_TOKEN` come from the environment. If they are not set, the extension reads `~/.taint-blame/config.env` (`KEY=value` lines).
+`TAINT_BLAME_URL` and `TAINT_BLAME_TOKEN` come from the environment. If they are not set, the extension reads `.taint-blame/config.env (in this repo)` (`KEY=value` lines).
 
 | Setting | Env var | `config.env` | Default |
 |---|---|---|---|

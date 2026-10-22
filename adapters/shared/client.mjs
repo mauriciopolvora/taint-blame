@@ -2,12 +2,13 @@
 // Contract: never throws, never blocks the agent for more than ~2 s.
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 export const MAX_CONTENT = 20 * 1024
 const TIMEOUT_MS = 2000
-const QUEUE_DIR = join(homedir(), '.taint-blame')
+// Lives in the repo's own .taint-blame/ (gitignored), next to config.env.
+const QUEUE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.taint-blame')
 const QUEUE_FILE = join(QUEUE_DIR, 'queue.jsonl')
 
 const SECRET_PATTERNS = [

@@ -90,7 +90,7 @@ function TokenSection({ saved, onSaved }: { saved: string; onSaved: (t: string) 
       title="API token"
       description={
         <>
-          Same token the pi extension uses (<code className="code text-[12.5px] text-fg">~/.taint-blame/config.env</code>). It is stored only in
+          Same token the pi extension uses (<code className="code text-[12.5px] text-fg">.taint-blame/config.env</code> in the repo). It is stored only in
           this browser and sent as a bearer header for protected actions.
         </>
       }
