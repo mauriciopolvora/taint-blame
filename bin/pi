@@ -1,7 +1,0 @@
-#!/bin/sh
-# Runs pi with the Taint Blame extension loaded from this repo. Nothing is installed globally:
-# settings and the retry queue live in this repo's .taint-blame/ (gitignored).
-# Usage, from any project:  ~/Developer/taint-blame/bin/pi [pi args...]
-set -eu
-REPO="$(cd "$(dirname "$0")/.." && pwd -P)"
-exec pi -e "$REPO/adapters/pi/taint-blame.ts" "$@"

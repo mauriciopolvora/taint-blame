@@ -14,7 +14,7 @@ chmod 600 .taint-blame/config.env
 
 ## pi extension
 
-See [pi/README.md](pi/README.md): run pi with `bin/pi` (nothing installed globally), then `/taint-blame` inside pi for status, guard and recording settings.
+See [pi/README.md](pi/README.md): install with `bin/install-pi` (a single symlink into pi; settings stay in the repo), then `/taint-blame` inside pi for status, guard and recording settings.
 
 ## Guarantees
 

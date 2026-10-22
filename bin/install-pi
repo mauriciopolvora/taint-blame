@@ -1,0 +1,10 @@
+#!/bin/sh
+# Links the Taint Blame extension into pi's global extensions folder, so plain `pi` loads it.
+# Only the link lives outside the repo: settings and the retry queue stay in this repo's .taint-blame/.
+# Undo with: rm ~/.pi/agent/extensions/taint-blame.ts
+set -eu
+REPO="$(cd "$(dirname "$0")/.." && pwd -P)"
+mkdir -p "$HOME/.pi/agent/extensions"
+ln -sfn "$REPO/adapters/pi/taint-blame.ts" "$HOME/.pi/agent/extensions/taint-blame.ts"
+echo "Linked ~/.pi/agent/extensions/taint-blame.ts -> $REPO/adapters/pi/taint-blame.ts"
+echo "Start pi normally; type /taint-blame for status and settings."

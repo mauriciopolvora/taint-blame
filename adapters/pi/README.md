@@ -17,10 +17,10 @@ The session id is pi's own session id (`ctx.sessionManager.getSessionId()`, a UU
 ## Install
 
 ```sh
-bin/pi
+bin/install-pi
 ```
 
-Nothing is installed globally. Run pi through the repo's launcher, from any project: `~/Developer/taint-blame/bin/pi` (it runs `pi -e <repo>/adapters/pi/taint-blame.ts` and passes every other argument through). Settings and the retry queue live in this repo's `.taint-blame/` (gitignored).
+This adds one symlink, `~/.pi/agent/extensions/taint-blame.ts`, pointing at this file, so plain `pi` loads the extension in every project (run `/reload` in a session that is already open). Don't also pass `-e`, or it loads twice. Settings and the retry queue stay in this repo's `.taint-blame/` (gitignored). Undo with `rm ~/.pi/agent/extensions/taint-blame.ts`.
 
 To load it for one run instead: `pi -e /path/to/taint-blame/adapters/pi/taint-blame.ts ...` (not both: with the symlink installed, `-e` would load it a second time).
 

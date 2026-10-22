@@ -181,7 +181,7 @@ function EmptyState() {
         </p>
       </div>
       <ul className="mx-auto mt-10 grid max-w-[1000px] list-none gap-px overflow-hidden rounded-md border border-line bg-line p-0 md:grid-cols-2">
-        <Step title="Run pi" hint="From any project, loads the extension from this repo" cmd="~/Developer/taint-blame/bin/pi" />
+        <Step title="Install" hint="Links the extension into pi, then start pi as usual" cmd="bin/install-pi" />
         <Step title="Settings" hint="Status, guard and recording, inside pi" cmd="/taint-blame" />
       </ul>
       <p className="mx-auto m-0 mt-6 max-w-[1000px] text-center text-[13px] leading-relaxed text-faint">
