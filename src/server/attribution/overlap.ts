@@ -155,7 +155,7 @@ export function overlap(write: WriteInput, contexts: ContextInput[]): Finding[] 
 
     // Red when the copied piece sits next to an imperative aimed at the agent
     // and the user never mentioned it.
-    const instructed = hasCueNear(ctx.content, fragment) && !prompts.includes(fragment)
+    const instructed = scores.some(([, , frag]) => hasCueNear(ctx.content, frag) && !prompts.includes(frag))
     const where = ctx.source_ref ? `${ctx.source} ${ctx.source_ref}` : ctx.source
 
     findings.push({
