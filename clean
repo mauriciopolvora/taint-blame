@@ -1,0 +1,17 @@
+#!/bin/sh
+# Clears every session from the Taint Blame dashboard. Uses the URL and token in .taint-blame/config.env.
+# Usage: ./clean   (or ~/Developer/taint-blame/clean from anywhere)
+set -eu
+REPO="$(cd "$(dirname "$0")" && pwd -P)"
+CONFIG="$REPO/.taint-blame/config.env"
+URL="$(sed -n 's/^TAINT_BLAME_URL=//p' "$CONFIG" | tr -d '"'"'")"
+TOKEN="$(sed -n 's/^TAINT_BLAME_TOKEN=//p' "$CONFIG" | tr -d '"'"'")"
+RES="$(curl -s -w '\n%{http_code}' -X POST "$URL/api/reset" \
+  -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{}')"
+CODE="$(printf '%s' "$RES" | tail -n 1)"
+if [ "$CODE" = "200" ]; then
+  echo "Dashboard cleared: $(printf '%s' "$RES" | head -n 1)"
+else
+  echo "Failed to clear the dashboard (HTTP $CODE)" >&2
+  exit 1
+fi
