@@ -10,11 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAttributeRouteImport } from './routes/api/attribute'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
+import { Route as SessionsIdRouteImport } from './routes/sessions/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAttributeRoute = ApiAttributeRouteImport.update({
+  id: '/api/attribute',
+  path: '/api/attribute',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEventsRoute = ApiEventsRouteImport.update({
@@ -22,31 +29,44 @@ const ApiEventsRoute = ApiEventsRouteImport.update({
   path: '/api/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsIdRoute = SessionsIdRouteImport.update({
+  id: '/sessions/$id',
+  path: '/sessions/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
+  '/sessions/$id': typeof SessionsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
+  '/sessions/$id': typeof SessionsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
+  '/sessions/$id': typeof SessionsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/events'
+  fullPaths: '/' | '/api/attribute' | '/api/events' | '/sessions/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/events'
-  id: '__root__' | '/' | '/api/events'
+  to: '/' | '/api/attribute' | '/api/events' | '/sessions/$id'
+  id: '__root__' | '/' | '/api/attribute' | '/api/events' | '/sessions/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiAttributeRoute: typeof ApiAttributeRoute
   ApiEventsRoute: typeof ApiEventsRoute
+  SessionsIdRoute: typeof SessionsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +78,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/attribute': {
+      id: '/api/attribute'
+      path: '/api/attribute'
+      fullPath: '/api/attribute'
+      preLoaderRoute: typeof ApiAttributeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/events': {
       id: '/api/events'
       path: '/api/events'
@@ -65,12 +92,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions/$id': {
+      id: '/sessions/$id'
+      path: '/sessions/$id'
+      fullPath: '/sessions/$id'
+      preLoaderRoute: typeof SessionsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiAttributeRoute: ApiAttributeRoute,
   ApiEventsRoute: ApiEventsRoute,
+  SessionsIdRoute: SessionsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
