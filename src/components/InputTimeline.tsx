@@ -84,16 +84,16 @@ export function InputTimeline({
     })
 
   return (
-    <section aria-labelledby="timeline-h" className="rounded-xl border border-line bg-panel">
+    <section aria-labelledby="timeline-h" className="rounded-lg border border-line bg-panel">
       <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
-        <h2 id="timeline-h" className="m-0 text-base font-semibold">
+        <h2 id="timeline-h" className="m-0 text-[14px] font-semibold">
           What the agent read
           <span className="ml-2 font-normal text-muted tabular-nums">{contexts.length}</span>
         </h2>
-        <label className="ml-auto flex min-h-8 cursor-pointer select-none items-center gap-2 text-sm text-muted hover:text-fg">
+        <label className="ml-auto flex min-h-8 cursor-pointer select-none items-center gap-2 text-[13px] text-muted hover:text-fg">
           <input
             type="checkbox"
-            className="size-4 accent-[var(--color-v-red)]"
+            className="size-3.5 accent-[var(--color-fg)]"
             checked={outsideOnly}
             onChange={(e) => setOutsideOnly(e.target.checked)}
           />
@@ -114,11 +114,11 @@ export function InputTimeline({
                   className="press flex min-h-9 w-full items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-panel-2"
                 >
                   <span className="flex w-5 shrink-0 justify-center" aria-hidden>
-                    <span className="size-2.5 rounded-full" style={{ background: verdictVar[verdict] }} />
+                    <span className="size-[7px] rounded-[2px]" style={{ background: verdictVar[verdict] }} />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[15px]">
+                  <span className="min-w-0 flex-1 truncate text-[14px]">
                     <span className="text-muted">Edited </span>
-                    <span className="font-mono text-[14px] text-fg">{basename(w.file_path)}</span>
+                    <span className="font-mono text-[12.5px] text-fg">{basename(w.file_path)}</span>
                   </span>
                   <Time ts={w.ts} className="shrink-0 text-xs text-faint" />
                 </button>
@@ -138,33 +138,27 @@ export function InputTimeline({
                 aria-expanded={isOpen}
                 onClick={() => toggle(c.id)}
                 className="flex w-full items-start gap-3 rounded-md px-2 py-2 text-left hover:bg-panel-2"
-                style={hit ? { background: `color-mix(in oklab, ${hc} 10%, transparent)`, boxShadow: `inset 3px 0 0 ${hc}` } : undefined}
+                style={hit ? { background: `color-mix(in oklab, ${hc} 5%, transparent)`, boxShadow: `inset 2px 0 0 ${hc}` } : undefined}
               >
                 <span
                   aria-hidden
-                  className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded font-mono text-xs font-bold"
-                  style={{
-                    color: info.outside ? 'var(--color-outside)' : 'var(--color-muted)',
-                    background: info.outside ? 'color-mix(in oklab, var(--color-outside) 16%, transparent)' : 'var(--color-panel-2)',
-                  }}
+                  className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border border-line font-mono text-[11px] text-muted"
                 >
                   {ICON[info.kind]}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="text-[15px] font-medium text-fg">{info.label}</span>
+                    <span className="text-[14px] font-medium text-fg">{info.label}</span>
                     {info.outside && (
-                      <span className="rounded px-1.5 text-xs font-medium" style={{ color: 'var(--color-outside)', background: 'color-mix(in oklab, var(--color-outside) 14%, transparent)' }}>
-                        outside
-                      </span>
+                      <span className="label !text-[10.5px]">outside</span>
                     )}
                     <Time ts={c.ts} className="ml-auto shrink-0 text-xs text-faint" />
                   </span>
-                  <span className="mt-0.5 block truncate text-sm text-muted" title={info.detail || undefined}>
+                  <span className="mt-0.5 block truncate text-[13px] text-muted" title={info.detail || undefined}>
                     {info.kind === 'prompt' ? c.content : info.detail || c.content.slice(0, 120)}
                   </span>
                   {hit && (
-                    <span className="mt-1 block text-sm font-medium" style={{ color: hc }}>
+                    <span className="mt-1 block text-[13px] font-medium" style={{ color: hc }}>
                       Led to{' '}
                       {[
                         hit.red && `${hit.red} injected`,
@@ -178,7 +172,7 @@ export function InputTimeline({
                 </span>
               </button>
               {isOpen && (
-                <pre className="code scroll-thin mx-2 mt-1 mb-2 ml-10 max-h-80 overflow-auto overscroll-contain whitespace-pre-wrap break-words rounded-md bg-code p-3 text-fg/90">
+                <pre className="code scroll-thin mx-2 mt-1 mb-2 ml-10 max-h-80 overflow-auto overscroll-contain whitespace-pre-wrap break-words rounded-md border border-line bg-code p-3 text-fg/90">
                   {hit ? (
                     <Highlighted
                       text={readable(c.content)}

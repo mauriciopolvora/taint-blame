@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
-  /* Surfaces: near-black, layered by a few percent of white. */
-  --color-bg: #08090a;
-  --color-panel: #0f1012;
-  --color-panel-2: #17181b;
-  --color-code: #0b0c0e;
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-2: rgb(255 255 255 / 0.14);
+  /* Paper and ink. Surfaces differ by a couple of percent, never by color. */
+  --color-bg: #f7f7f5;
+  --color-panel: #ffffff;
+  --color-panel-2: #f1f1ee;
+  --color-code: #fbfbfa;
+  --color-line: rgb(20 20 18 / 0.09);
+  --color-line-2: rgb(20 20 18 / 0.16);
 
   /* Text */
-  --color-fg: #f7f8f8;
-  --color-muted: #9ca0a8;
-  --color-faint: #6b7079;
-  --color-link: #8b93ff;
+  --color-fg: #161615;
+  --color-muted: #5e5e5a;
+  --color-faint: #8f8f8a;
+  --color-link: #161615;
 
-  /* Verdicts: one color, one meaning. */
-  --color-v-red: #ff6369;
-  --color-v-amber: #f2b84b;
-  --color-v-green: #4cc38a;
-  --color-v-pending: #8a8f98;
+  /* Verdicts. Red is the only saturated color on the page; the others are quiet. */
+  --color-v-red: #d4291f;
+  --color-v-amber: #9a6a12;
+  --color-v-green: #3d7a55;
+  --color-v-pending: #8f8f8a;
 
   /* Content that came from outside the user and their repo. */
-  --color-outside: #b4a7ff;
-  --color-del: rgb(255 255 255 / 0.05);
+  --color-outside: #9a6a12;
+  --color-del: rgb(20 20 18 / 0.035);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -36,7 +36,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   scroll-padding-top: 5rem;
   -webkit-text-size-adjust: 100%;
 }
@@ -48,7 +48,6 @@ body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
-  font-feature-settings: "cv01", "cv11", "ss03";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -56,15 +55,15 @@ body {
 h1,
 h2,
 h3 {
-  letter-spacing: -0.022em;
+  letter-spacing: -0.02em;
 }
 
 ::selection {
-  background: rgb(139 147 255 / 0.35);
+  background: rgb(20 20 18 / 0.12);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-link);
+  outline: 2px solid var(--color-fg);
   outline-offset: 2px;
 }
 
@@ -82,30 +81,39 @@ summary::-webkit-details-marker {
 
 .code {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 22px;
   font-variant-ligatures: none;
   tab-size: 2;
 }
 
+/* Small uppercase label, used for column heads and eyebrows. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
 /* Highlighted source text: the sentence that caused an edit. */
 mark.hl {
   color: var(--color-fg);
-  border-radius: 3px;
-  padding: 1px 2px;
+  padding: 1px 0;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
 mark.hl-red {
-  background: color-mix(in oklab, var(--color-v-red) 32%, transparent);
-  box-shadow: inset 0 -2px 0 var(--color-v-red);
+  background: color-mix(in oklab, var(--color-v-red) 13%, transparent);
+  box-shadow: inset 0 -1.5px 0 var(--color-v-red);
 }
 mark.hl-amber {
-  background: color-mix(in oklab, var(--color-v-amber) 28%, transparent);
-  box-shadow: inset 0 -2px 0 var(--color-v-amber);
+  background: color-mix(in oklab, var(--color-v-amber) 13%, transparent);
+  box-shadow: inset 0 -1.5px 0 var(--color-v-amber);
 }
 mark.hl-green {
-  background: color-mix(in oklab, var(--color-v-green) 24%, transparent);
+  background: color-mix(in oklab, var(--color-v-green) 12%, transparent);
 }
 
 /* Press feedback */
@@ -113,7 +121,7 @@ mark.hl-green {
   transition: scale 150ms ease-out;
 }
 .press:not(:disabled):active {
-  scale: 0.96;
+  scale: 0.98;
 }
 
 /* New rows that arrive while the page is open. The hidden state lives only in
@@ -126,13 +134,12 @@ mark.hl-green {
 @keyframes enter-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(4px);
+    transform: translateY(6px);
   }
 }
-@keyframes enter-glow {
+@keyframes enter-tint {
   from {
-    background-color: color-mix(in oklab, var(--color-link) 14%, transparent);
+    background-color: var(--color-panel-2);
   }
 }
 .enter {
@@ -150,61 +157,30 @@ tr.enter,
 li.enter {
   animation:
     enter-fade 300ms var(--ease-out) both,
-    enter-glow 1600ms ease-out;
+    enter-tint 1600ms ease-out;
 }
 
 /* Jumped-to edit */
 @keyframes flash {
   from {
-    box-shadow: 0 0 0 3px var(--color-link);
+    box-shadow: 0 0 0 2px var(--color-fg);
   }
   to {
-    box-shadow: 0 0 0 3px transparent;
+    box-shadow: 0 0 0 2px transparent;
   }
 }
 .flash {
   animation: flash 1.4s ease-out;
 }
 
-/* Live indicator */
-.live-dot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: currentColor;
-  opacity: 0;
-}
+/* Live indicator: a slow breath, not a ping. */
 @media (prefers-reduced-motion: no-preference) {
-  .live-dot::after {
-    animation: live-ping 2s var(--ease-out) infinite;
+  .live-dot {
+    animation: live-breathe 2.4s ease-in-out infinite;
   }
 }
-@keyframes live-ping {
-  0% {
-    opacity: 0.6;
-    transform: scale(1);
+@keyframes live-breathe {
+  50% {
+    opacity: 0.35;
   }
-  100% {
-    opacity: 0;
-    transform: scale(2.6);
-  }
-}
-
-/* Landing hero glow: one soft light source, nothing else. */
-.hero-glow {
-  position: absolute;
-  inset: -12rem 0 auto;
-  height: 36rem;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 50% 45% at 50% 30%, rgb(139 147 255 / 0.10), transparent 70%),
-    radial-gradient(ellipse 30% 30% at 62% 38%, rgb(255 99 105 / 0.06), transparent 70%);
-}
-
-.text-gradient {
-  background: linear-gradient(180deg, #f7f8f8 30%, rgb(247 248 248 / 0.7));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }

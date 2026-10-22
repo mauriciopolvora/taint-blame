@@ -9,18 +9,14 @@ export const verdictVar: Record<VerdictOrPending, string> = {
   pending: 'var(--color-v-pending)',
 }
 
+// Verdict as a word, colored. No pill, no fill: the color is the signal.
 export function VerdictChip({ verdict, size = 'md' }: { verdict: VerdictOrPending; size?: 'sm' | 'md' | 'lg' }) {
-  const c = verdictVar[verdict]
-  const sz = size === 'lg' ? 'h-7 px-2.5 text-sm' : size === 'md' ? 'h-6 px-2 text-[13px]' : 'h-5 px-1.5 text-xs'
+  const sz = size === 'lg' ? 'text-[15px]' : size === 'md' ? 'text-[13.5px]' : 'text-[12.5px]'
   return (
     <span
       title={VERDICT_HINT[verdict]}
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border font-medium ${sz}`}
-      style={{
-        color: c,
-        borderColor: `color-mix(in oklab, ${c} 28%, transparent)`,
-        background: `color-mix(in oklab, ${c} 10%, transparent)`,
-      }}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap font-medium ${sz}`}
+      style={{ color: verdictVar[verdict] }}
     >
       <VerdictDot verdict={verdict} />
       {VERDICT_LABEL[verdict]}
@@ -29,12 +25,11 @@ export function VerdictChip({ verdict, size = 'md' }: { verdict: VerdictOrPendin
 }
 
 export function VerdictDot({ verdict, className = '' }: { verdict: VerdictOrPending; className?: string }) {
-  const c = verdictVar[verdict]
   return (
     <span
       aria-hidden
-      className={`inline-block size-1.5 shrink-0 rounded-full ${className}`}
-      style={{ background: c, boxShadow: `0 0 0 3px color-mix(in oklab, ${c} 18%, transparent)` }}
+      className={`inline-block size-[7px] shrink-0 rounded-[2px] ${className}`}
+      style={{ background: verdictVar[verdict] }}
     />
   )
 }
@@ -118,13 +113,11 @@ export function repoName(cwd: string | null): string {
 
 export function Logo() {
   return (
-    <a href="/" className="flex items-center gap-2.5 rounded-md text-fg no-underline">
-      <span className="flex h-[18px] items-stretch gap-[2px]" aria-hidden>
-        <span className="w-1 rounded-[2px] bg-v-green" />
-        <span className="w-1 rounded-[2px] bg-v-amber" />
-        <span className="w-1 rounded-[2px] bg-v-red" />
+    <a href="/" className="flex items-center gap-2 rounded text-fg no-underline">
+      <span aria-hidden className="grid size-[18px] place-items-center rounded-[4px] bg-fg">
+        <span className="size-[6px] rounded-[1px] bg-bg" />
       </span>
-      <span className="text-[15px] font-semibold tracking-[-0.01em]">Taint Blame</span>
+      <span className="text-[15px] font-semibold tracking-[-0.015em]">Taint Blame</span>
     </a>
   )
 }
@@ -135,13 +128,11 @@ export function LiveBadge({ state }: { state: LiveState }) {
   const c = state === 'live' ? 'var(--color-v-green)' : state === 'offline' ? 'var(--color-v-amber)' : 'var(--color-faint)'
   return (
     <span
-      className="inline-flex h-7 items-center gap-2 rounded-full border border-line bg-white/[0.02] px-3 text-[13px] font-medium text-muted"
+      className="inline-flex items-center gap-2 text-[13px] text-faint"
       title={state === 'live' ? 'Updates every few seconds while this tab is open' : 'Updates resume when you return to this tab'}
       aria-live="polite"
     >
-      <span className={`relative flex size-1.5 ${state === 'live' ? 'live-dot' : ''}`} style={{ color: c }}>
-        <span className="size-1.5 rounded-full" style={{ background: c }} />
-      </span>
+      <span className={`size-1.5 rounded-full ${state === 'live' ? 'live-dot' : ''}`} style={{ background: c }} />
       {LIVE_TEXT[state]}
     </span>
   )
@@ -153,7 +144,7 @@ export function Header({
   width = 'max-w-[1440px]',
 }: { live: LiveState; children?: React.ReactNode; width?: string }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-bg/80 backdrop-blur-md">
+    <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur">
       <div className={`mx-auto flex h-14 items-center gap-4 px-6 ${width}`}>
         <Logo />
         {children}
@@ -165,17 +156,18 @@ export function Header({
   )
 }
 
+// Three definitions in a row, separated by hairlines. Only the label carries color.
 export function Legend({ className = '' }: { className?: string }) {
   const items: VerdictOrPending[] = ['red', 'amber', 'green']
   return (
-    <dl className={`m-0 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3 ${className}`}>
-      {items.map((k) => (
-        <div key={k} className="bg-bg px-5 py-3.5">
-          <dt className="flex items-center gap-2.5 text-[15px] font-medium" style={{ color: verdictVar[k] }}>
+    <dl className={`m-0 grid border-t border-line sm:grid-cols-3 ${className}`}>
+      {items.map((k, i) => (
+        <div key={k} className={`py-5 sm:pr-8 ${i > 0 ? 'border-t border-line sm:border-t-0 sm:border-l sm:pl-8' : ''}`}>
+          <dt className="flex items-center gap-2 text-[15px] font-semibold" style={{ color: k === 'red' ? verdictVar.red : 'var(--color-fg)' }}>
             <VerdictDot verdict={k} />
             {VERDICT_LABEL[k]}
           </dt>
-          <dd className="m-0 mt-1.5 text-sm leading-snug text-muted text-pretty">{VERDICT_HINT[k]}.</dd>
+          <dd className="m-0 mt-1.5 text-[14.5px] leading-snug text-muted text-pretty">{VERDICT_HINT[k]}.</dd>
         </div>
       ))}
     </dl>

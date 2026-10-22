@@ -50,7 +50,7 @@ export function Diff({
   const segments = useMemo(() => withContext(rows, 2), [rows])
   const [open, setOpen] = useState<Set<number>>(new Set())
 
-  const strength = verdict === 'red' ? 22 : verdict === 'amber' ? 16 : 10
+  const strength = verdict === 'red' ? 9 : 7
   const bg = (r: DiffRow) =>
     r.kind === 'add'
       ? `color-mix(in oklab, ${color} ${strength}%, transparent)`
@@ -64,9 +64,9 @@ export function Diff({
       <div key={key} className="flex min-w-max" style={{ background: bg(r) }}>
         <span
           className="w-1 shrink-0"
-          style={{ background: r.kind === 'add' ? color : r.kind === 'del' ? 'var(--color-line-2)' : 'transparent' }}
+          style={{ background: r.kind === 'add' ? color : 'transparent' }}
         />
-        <span className="w-12 shrink-0 select-none pr-3 text-right text-faint">{r.kind !== 'del' ? r.newNo : ''}</span>
+        <span className="w-12 shrink-0 select-none pr-3 text-right text-faint/70">{r.kind !== 'del' ? r.newNo : ''}</span>
         <span
           className="w-5 shrink-0 select-none text-center"
           style={{ color: r.kind === 'add' ? color : 'var(--color-faint)' }}
@@ -82,7 +82,7 @@ export function Diff({
   }
 
   return (
-    <div className="code scroll-thin overflow-x-auto rounded-lg bg-code py-1.5">
+    <div className="code scroll-thin overflow-x-auto rounded-md border border-line bg-code py-1.5">
       {rows.length === 0 && <div className="px-4 py-2 text-faint">(empty edit)</div>}
       {segments.map((seg, si) =>
         seg.type === 'rows' || open.has(si) ? (

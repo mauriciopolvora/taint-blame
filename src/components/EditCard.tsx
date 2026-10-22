@@ -45,25 +45,25 @@ function SourceQuote({
   const c = verdictVar[tone]
   const href = cause.source_ref && /^https?:\/\//.test(cause.source_ref) ? cause.source_ref : null
   return (
-    <figure className="m-0 rounded-lg bg-panel-2 p-4" style={{ boxShadow: `inset 3px 0 0 ${c}` }}>
-      <figcaption className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-        <span className="font-semibold text-fg">{info.label}</span>
+    <figure className="m-0 border-l-2 py-1 pl-4" style={{ borderColor: c }}>
+      <figcaption className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13.5px] text-muted">
+        <span className="font-medium text-fg">{info.label}</span>
         {info.detail &&
           (href ? (
-            <a href={href} target="_blank" rel="noreferrer noopener" className="font-mono text-[13px] text-link underline-offset-2 hover:underline">
+            <a href={href} target="_blank" rel="noreferrer noopener" className="font-mono text-[12.5px] text-muted underline decoration-line-2 underline-offset-2 hover:text-fg">
               {info.detail}
             </a>
           ) : (
-            <span className="font-mono text-[13px]">{info.detail}</span>
+            <span className="font-mono text-[12.5px]">{info.detail}</span>
           ))}
         {ex?.hidden && (
-          <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ color: c, background: `color-mix(in oklab, ${c} 16%, transparent)` }}>
-            Hidden in an HTML comment
+          <span className="font-medium" style={{ color: c }}>
+            · Hidden in an HTML comment
           </span>
         )}
       </figcaption>
       {ex ? (
-        <blockquote className="m-0 whitespace-pre-wrap break-words text-[17px] leading-relaxed text-fg">
+        <blockquote className="m-0 whitespace-pre-wrap break-words text-[16.5px] leading-relaxed text-fg">
           {ex.clippedStart && '… '}
           <Highlighted text={ex.text} ranges={ex.ranges} tone={tone} />
           {ex.clippedEnd && ' …'}
@@ -103,28 +103,28 @@ export function EditCard({
   return (
     <article
       id={`w-${write.id}`}
-      className={`scroll-mt-24 rounded-xl border bg-panel ${fresh ? 'enter' : ''}`}
-      style={{ borderColor: verdict === 'red' ? `color-mix(in oklab, ${c} 55%, transparent)` : 'var(--color-line)' }}
+      className={`scroll-mt-24 rounded-lg border bg-panel ${fresh ? 'enter' : ''}`}
+      style={{ borderColor: verdict === 'red' ? `color-mix(in oklab, ${c} 45%, var(--color-line))` : 'var(--color-line)' }}
     >
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-4">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-5 py-3">
         <VerdictChip verdict={verdict} />
-        <h3 className="m-0 min-w-0 truncate font-mono text-[16px] font-medium">
+        <h3 className="m-0 min-w-0 truncate font-mono text-[13.5px] font-medium">
           <span className="text-muted">{dir}</span>
           <span className="text-fg">{name}</span>
         </h3>
-        <span className="ml-auto flex items-center gap-3 font-mono text-sm tabular-nums">
-          <span className="text-fg">+{added}</span>
-          <span className="text-muted">−{removed}</span>
+        <span className="ml-auto flex items-center gap-3 font-mono text-[12.5px] tabular-nums">
+          <span className="text-muted">+{added}</span>
+          <span className="text-faint">−{removed}</span>
           <Time ts={write.ts} className="text-faint" />
         </span>
       </header>
 
-      <div className="space-y-4 px-5 pt-3 pb-5">
-        <p className="m-0 text-[18px] font-medium leading-snug text-balance" style={{ color: verdict === 'green' || verdict === 'pending' ? 'var(--color-fg)' : c }}>
+      <div className="space-y-4 px-5 pt-4 pb-5">
+        <p className="m-0 text-[17px] font-semibold leading-snug tracking-[-0.01em] text-balance" style={{ color: verdict === 'red' ? c : 'var(--color-fg)' }}>
           {headlineFor(verdict, info)}
         </p>
         {e.why && verdict !== 'pending' && (
-          <p className="m-0 max-w-[75ch] text-[16px] leading-relaxed text-muted text-pretty">{e.why}</p>
+          <p className="m-0 max-w-[75ch] text-[15px] leading-relaxed text-muted text-pretty">{e.why}</p>
         )}
 
         {showSource && e.cause && <SourceQuote cause={e.cause} ex={ex} cwd={cwd} tone={tone} />}
@@ -141,18 +141,18 @@ function Signals({ write, ctx, cwd }: { write: WriteEvent; ctx: Map<string, Cont
   const n = write.attributions.length
   return (
     <details className="group text-sm">
-      <summary className="inline-flex min-h-8 cursor-pointer select-none items-center gap-1.5 rounded-md text-muted hover:text-fg">
+      <summary className="inline-flex min-h-8 cursor-pointer select-none items-center gap-1.5 rounded text-[13.5px] text-faint hover:text-fg">
         <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">
           ›
         </span>
         How we decided ({n} signal{n === 1 ? '' : 's'})
       </summary>
-      <ul className="m-0 mt-2 list-none space-y-2 p-0">
+      <ul className="m-0 mt-2 list-none divide-y divide-line border-y border-line p-0">
         {write.attributions.map((a) => {
           const info = describeInput(ctx.get(a.context_id), cwd)
           const { text, fragment } = splitOverlapReason(a.reason)
           return (
-            <li key={`${a.context_id}-${a.method}`} className="rounded-lg bg-panel-2 px-4 py-3">
+            <li key={`${a.context_id}-${a.method}`} className="py-3">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <VerdictChip verdict={v(a.verdict)} size="sm" />
                 <span className="font-medium text-fg">{a.method === 'llm' ? 'AI review' : 'Text match'}</span>
@@ -165,7 +165,7 @@ function Signals({ write, ctx, cwd }: { write: WriteEvent; ctx: Map<string, Cont
               {text && <p className="m-0 mt-1.5 leading-relaxed text-muted">{text}</p>}
               {fragment && (
                 <p className="m-0 mt-1.5 text-muted">
-                  Matched text: <code className="code rounded bg-code px-1.5 py-0.5 text-fg">{fragment}</code>
+                  Matched text: <code className="code rounded bg-panel-2 px-1.5 py-0.5 text-fg">{fragment}</code>
                 </p>
               )}
             </li>

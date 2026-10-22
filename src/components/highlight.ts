@@ -6,7 +6,7 @@ import type { HighlighterCore } from 'shiki/core'
 
 export type Tok = { content: string; color?: string; fontStyle?: number }
 
-const THEME = 'github-dark-default'
+const THEME = 'github-light-default'
 
 const LANGS: Record<string, () => Promise<unknown>> = {
   typescript: () => import('shiki/langs/typescript.mjs'),
@@ -50,7 +50,7 @@ async function getHighlighter(): Promise<HighlighterCore> {
     const [{ createHighlighterCore }, { createJavaScriptRegexEngine }, theme] = await Promise.all([
       import('shiki/core'),
       import('shiki/engine/javascript'),
-      import('shiki/themes/github-dark-default.mjs'),
+      import('shiki/themes/github-light-default.mjs'),
     ])
     return createHighlighterCore({
       themes: [theme.default],
