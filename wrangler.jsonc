@@ -9,7 +9,7 @@
     {
       "binding": "DB",
       "database_name": "taint-blame",
-      "database_id": "172170ff-f558-4c24-9ea7-ef1eeb8556ba",
+      "database_id": "f6742038-d4d6-41ff-bef3-d44d3d063040",
       "migrations_dir": "migrations"
     }
   ],
