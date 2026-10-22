@@ -96,6 +96,12 @@ function Sidebar({ path }: { path: string }) {
             <NavItem to="/settings" active={path === '/settings'} label="Settings" icon={<IconSettings />} />
           </li>
         </ul>
+        <p className="label m-0 mt-5 px-2 pb-1.5">Product</p>
+        <ul className="m-0 list-none space-y-0.5 p-0">
+          <li>
+            <NavItem to="/welcome" active={path === '/welcome'} label="About Taint Blame" icon={<IconAbout />} />
+          </li>
+        </ul>
       </nav>
 
       <div className="mt-auto space-y-3 p-3">
@@ -114,7 +120,7 @@ function Sidebar({ path }: { path: string }) {
   )
 }
 
-function NavItem({ to, active, label, icon }: { to: '/' | '/settings'; active: boolean; label: string; icon: React.ReactNode }) {
+function NavItem({ to, active, label, icon }: { to: '/' | '/settings' | '/welcome'; active: boolean; label: string; icon: React.ReactNode }) {
   return (
     <Link
       to={to}
@@ -149,6 +155,15 @@ function IconSessions() {
     <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
       <rect x="2.5" y="2.5" width="11" height="11" rx="2" />
       <path d="M5 6h6M5 8.5h6M5 11h3.5" />
+    </svg>
+  )
+}
+
+function IconAbout() {
+  return (
+    <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M8 7.25v3.5M8 5.25v.01" />
     </svg>
   )
 }

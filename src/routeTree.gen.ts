@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ApiAttributeRouteImport } from './routes/api/attribute'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
 import { Route as ApiResetRouteImport } from './routes/api/reset'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAttributeRoute = ApiAttributeRouteImport.update({
@@ -56,6 +62,7 @@ const SessionsIdRoute = SessionsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
   '/api/reset': typeof ApiResetRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
   '/api/reset': typeof ApiResetRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/attribute': typeof ApiAttributeRoute
   '/api/events': typeof ApiEventsRoute
   '/api/reset': typeof ApiResetRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/settings'
+    | '/welcome'
     | '/api/attribute'
     | '/api/events'
     | '/api/reset'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/settings'
+    | '/welcome'
     | '/api/attribute'
     | '/api/events'
     | '/api/reset'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/settings'
+    | '/welcome'
     | '/api/attribute'
     | '/api/events'
     | '/api/reset'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRoute: typeof SettingsRoute
+  WelcomeRoute: typeof WelcomeRoute
   ApiAttributeRoute: typeof ApiAttributeRoute
   ApiEventsRoute: typeof ApiEventsRoute
   ApiResetRoute: typeof ApiResetRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/attribute': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRoute: SettingsRoute,
+  WelcomeRoute: WelcomeRoute,
   ApiAttributeRoute: ApiAttributeRoute,
   ApiEventsRoute: ApiEventsRoute,
   ApiResetRoute: ApiResetRoute,
