@@ -2,6 +2,8 @@
 // Adds the Taint Blame hooks to <target>/.claude/settings.json (default: cwd),
 // merging with existing settings. Idempotent.
 // Usage: node adapters/claude-code/install.mjs [target-repo] [--local]
+// PreToolUse only acts when the guard is on (TAINT_BLAME_GUARD=1|ask|block, or guard= in
+// ~/.taint-blame/config.env); otherwise it prints nothing.
 //   --local  write .claude/settings.local.json instead (not committed)
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -32,6 +34,7 @@ function add(event, matcher) {
 }
 add('UserPromptSubmit')
 add('PostToolUse', '*')
+add('PreToolUse', 'Edit|Write|MultiEdit')
 
 mkdirSync(dirname(file), { recursive: true })
 writeFileSync(file, JSON.stringify(settings, null, 2) + '\n')

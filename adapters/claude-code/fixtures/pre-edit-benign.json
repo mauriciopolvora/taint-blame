@@ -1,0 +1,15 @@
+{
+  "session_id": "fixture-guard-0001",
+  "transcript_path": "/dev/null",
+  "cwd": "/tmp/tb-fixture-repo",
+  "permission_mode": "acceptEdits",
+  "tool_use_id": "toolu_fixture",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/tmp/tb-fixture-repo/src/test/retry.test.js",
+    "old_string": "await withRetry(fn)",
+    "new_string": "await withRetry(fn, { delayMs: 0 })",
+    "replace_all": false
+  }
+}

@@ -5,6 +5,9 @@
     ],
     "PostToolUse": [
       { "matcher": "*", "hooks": [{ "type": "command", "command": "node /ABSOLUTE/PATH/TO/taint-blame/adapters/claude-code/hook.mjs", "timeout": 5 }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "node /ABSOLUTE/PATH/TO/taint-blame/adapters/claude-code/hook.mjs", "timeout": 5 }] }
     ]
   }
 }

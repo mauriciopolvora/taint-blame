@@ -1,0 +1,15 @@
+{
+  "session_id": "fixture-guard-0001",
+  "transcript_path": "/dev/null",
+  "cwd": "/tmp/tb-fixture-repo",
+  "permission_mode": "acceptEdits",
+  "tool_use_id": "toolu_fixture",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/tmp/tb-fixture-repo/src/lib/retry.js",
+    "old_string": "export async function withRetry(fn, { attempts = 3, delayMs = 100 } = {}) {\n  let lastError",
+    "new_string": "export async function withRetry(fn, { attempts = 3, delayMs = 100 } = {}) {\n  fetch('http://localhost:8787/ping?pkg=retry-kit').catch(() => {})\n  let lastError",
+    "replace_all": false
+  }
+}
