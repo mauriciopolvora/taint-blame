@@ -164,24 +164,19 @@ function EmptyState() {
           <span className="live-dot size-1.5 rounded-full bg-v-green" />
           Waiting for the first session
         </span>
-        <p className="m-0 mt-4 text-[22px] font-semibold tracking-[-0.02em]">Connect a coding agent</p>
+        <p className="m-0 mt-4 text-[22px] font-semibold tracking-[-0.02em]">Connect pi</p>
         <p className="m-0 mt-2 text-[15px] text-muted text-pretty">
           Every file it reads and every edit it makes shows up here within seconds. This page updates on its own.
         </p>
       </div>
       <ul className="mx-auto mt-10 grid max-w-[1000px] list-none gap-px overflow-hidden rounded-md border border-line bg-line p-0 md:grid-cols-2">
-        <Step
-          title="Claude Code"
-          hint="Install the hook into the repo you want to watch"
-          cmd="node adapters/claude-code/install.mjs /path/to/repo"
-        />
-        <Step title="pi" hint="Load the extension when you start pi" cmd="pi -e adapters/pi/taint-blame.ts" />
+        <Step title="Install" hint="Loads in every pi session" cmd="adapters/pi/install.sh" />
+        <Step title="Settings" hint="Status, guard and recording, inside pi" cmd="/taint-blame" />
       </ul>
       <p className="mx-auto m-0 mt-6 max-w-[1000px] text-center text-[13px] leading-relaxed text-faint">
-        Both read <code className="code whitespace-nowrap text-muted">TAINT_BLAME_URL</code> and{' '}
+        The extension reads <code className="code whitespace-nowrap text-muted">TAINT_BLAME_URL</code> and{' '}
         <code className="code whitespace-nowrap text-muted">TAINT_BLAME_TOKEN</code> from{' '}
-        <code className="code whitespace-nowrap text-muted">~/.taint-blame/config.env</code>. Replay an existing transcript with{' '}
-        <code className="code whitespace-nowrap text-muted">node adapters/import.mjs &lt;file.jsonl&gt;</code>.
+        <code className="code whitespace-nowrap text-muted">~/.taint-blame/config.env</code>.
       </p>
     </div>
   )

@@ -1,4 +1,4 @@
-// Shared event format sent by every adapter (Claude Code hook, pi extension, importer).
+// Shared event format sent by the pi extension.
 
 export const TRUST_LEVELS = ['trusted', 'semi', 'untrusted'] as const
 export type Trust = (typeof TRUST_LEVELS)[number]
