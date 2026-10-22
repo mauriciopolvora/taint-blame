@@ -1,0 +1,31 @@
+{
+  "session_id": "fixture-session-0001",
+  "transcript_path": "/dev/null",
+  "cwd": "/tmp/tb-fixture-repo",
+  "permission_mode": "acceptEdits",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "WebSearch",
+  "tool_input": {
+    "query": "example domain iana",
+    "mode": "standard"
+  },
+  "tool_response": {
+    "query": "example domain iana",
+    "results": [
+      {
+        "tool_use_id": "srvtoolu_x",
+        "content": [
+          {
+            "title": "Example Domains",
+            "url": "https://iana.org/domains/example"
+          }
+        ]
+      },
+      "IANA maintains example.com for documentation."
+    ],
+    "durationSeconds": 1,
+    "searchCount": 1
+  },
+  "tool_use_id": "toolu_fixture",
+  "duration_ms": 3
+}

@@ -1,0 +1,21 @@
+{
+  "session_id": "fixture-session-0001",
+  "transcript_path": "/dev/null",
+  "cwd": "/tmp/tb-fixture-repo",
+  "permission_mode": "acceptEdits",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "cat .env",
+    "description": "Show env"
+  },
+  "tool_response": {
+    "stdout": "API_KEY=supersecretvalue123\nghp_abcdefghijklmnopqrstuvwxyz0123",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false
+  },
+  "tool_use_id": "toolu_fixture",
+  "duration_ms": 3
+}

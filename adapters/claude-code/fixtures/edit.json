@@ -1,0 +1,25 @@
+{
+  "session_id": "fixture-session-0001",
+  "transcript_path": "/dev/null",
+  "cwd": "/tmp/tb-fixture-repo",
+  "permission_mode": "acceptEdits",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/tmp/tb-fixture-repo/README.md",
+    "old_string": "Some text.",
+    "new_string": "Some text.\nhello",
+    "replace_all": false
+  },
+  "tool_response": {
+    "filePath": "/tmp/tb-fixture-repo/README.md",
+    "oldString": "Some text.",
+    "newString": "Some text.\nhello",
+    "originalFile": "# Demo\n\nSome text.\n",
+    "structuredPatch": [],
+    "userModified": false,
+    "replaceAll": false
+  },
+  "tool_use_id": "toolu_fixture",
+  "duration_ms": 3
+}

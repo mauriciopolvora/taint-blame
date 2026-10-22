@@ -1,0 +1,26 @@
+{
+  "session_id": "fixture-session-0001",
+  "transcript_path": "/dev/null",
+  "cwd": "/tmp/tb-fixture-repo",
+  "permission_mode": "acceptEdits",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Agent",
+  "tool_input": {
+    "description": "Read README",
+    "prompt": "Read README.md",
+    "subagent_type": "general-purpose"
+  },
+  "tool_response": {
+    "status": "completed",
+    "agentId": "a1",
+    "content": [
+      {
+        "type": "text",
+        "text": "The first line is # Demo"
+      }
+    ],
+    "totalToolUseCount": 1
+  },
+  "tool_use_id": "toolu_fixture",
+  "duration_ms": 3
+}

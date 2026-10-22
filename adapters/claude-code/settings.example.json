@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "node /ABSOLUTE/PATH/TO/taint-blame/adapters/claude-code/hook.mjs", "timeout": 5 }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "node /ABSOLUTE/PATH/TO/taint-blame/adapters/claude-code/hook.mjs", "timeout": 5 }] }
+    ]
+  }
+}
