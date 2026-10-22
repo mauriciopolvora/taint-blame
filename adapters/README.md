@@ -19,5 +19,5 @@ See [pi/README.md](pi/README.md): install with `bin/install-pi` (a single symlin
 ## Guarantees
 
 - **Redaction:** content, write text, and Bash commands pass through `shared/client.mjs` `clean()`/`redact()`. This removes API keys, tokens, private keys, `*_KEY=`/`*_TOKEN=` assignments, and every value in `.env`-style files. Each content field is capped at 20 KB.
-- **Never blocks the agent:** the POST times out after 2 s, and every handler catches its own errors, so a failure never breaks pi.
+- **Never blocks the agent:** sends run in the background with an 8 s timeout, and every handler catches its own errors, so a failure never breaks pi.
 - **Never loses events:** if a POST fails or times out, the events are appended to `.taint-blame/queue.jsonl` in this repo (mode 600). The extension sends them again at the start of the next session.

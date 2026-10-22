@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 export const MAX_CONTENT = 20 * 1024
-const TIMEOUT_MS = 2000
+// Sends run in the background and never hold the agent up, so allow for a slow server.
+const TIMEOUT_MS = 8000
 // Lives in the repo's own .taint-blame/ (gitignored), next to config.env.
 const QUEUE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.taint-blame')
 const QUEUE_FILE = join(QUEUE_DIR, 'queue.jsonl')
@@ -95,7 +96,9 @@ export async function send(eventOrEvents) {
   try {
     const events = (Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents]).filter(Boolean)
     if (events.length === 0) return
-    if (!(await post(events))) enqueue(events)
+    if (!(await post(events))) return enqueue(events)
+    // The server is reachable again: retry anything an earlier send left behind.
+    if (existsSync(QUEUE_FILE)) await flushQueue()
   } catch {}
 }
 
