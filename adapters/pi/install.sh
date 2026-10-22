@@ -11,3 +11,5 @@ if [ ! -f "$HOME/.taint-blame/config.env" ] && [ -f "$REPO/.env.adapter" ]; then
   chmod 600 "$HOME/.taint-blame/config.env"
 fi
 echo "Linked $HOME/.pi/agent/extensions/taint-blame.ts -> $HERE/taint-blame.ts"
+echo "It loads in every new pi session (run /reload in an open one). Type /taint-blame for status and settings."
+echo "No -e flag needed any more; passing it as well would load the extension twice."
