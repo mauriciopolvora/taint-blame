@@ -11,7 +11,7 @@ type WriteRow = {
 }
 
 function judgeEnabled(env: Env) {
-  return String(env.JUDGE_ENABLED) === 'true' && !!env.ANTHROPIC_API_KEY
+  return String(env.JUDGE_ENABLED) === 'true' && !!env.OPENROUTER_API_KEY
 }
 
 async function attributeOne(env: Env, w: WriteRow) {
@@ -42,7 +42,7 @@ async function attributeOne(env: Env, w: WriteRow) {
   // The judge only runs when the session had untrusted input, and its verdict
   // wins because it sees the overlap hints plus the meaning of the text.
   if (judgeEnabled(env) && contexts.some((c) => c.trust === 'untrusted')) {
-    const result = await judge(env.ANTHROPIC_API_KEY, w, contexts, findings)
+    const result = await judge(env.OPENROUTER_API_KEY, w, contexts, findings)
     if (result) {
       verdict = result.verdict
       for (const f of result.findings) {

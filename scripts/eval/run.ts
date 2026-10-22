@@ -1,6 +1,6 @@
 // Evidence run: score overlap-only vs overlap+judge on the labeled scenarios.
 // npx tsx scripts/eval/run.ts            -> overlap only
-// ANTHROPIC_API_KEY=... npx tsx scripts/eval/run.ts   -> both
+// OPENROUTER_API_KEY=... npx tsx scripts/eval/run.ts   -> both
 // Writes evidence/eval-report.md and evidence/eval-results.json.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -10,7 +10,7 @@ import { scenarios } from './scenarios'
 
 type Row = { scenario: string; label: string; injected: boolean; overlap: Verdict; judge: Verdict | null }
 
-const apiKey = process.env.ANTHROPIC_API_KEY
+const apiKey = process.env.OPENROUTER_API_KEY
 const rows: Row[] = []
 
 for (const s of scenarios) {
@@ -44,7 +44,7 @@ const line = (name: string, s: ReturnType<typeof score>) =>
 const md = `# Attribution evidence
 
 ${rows.length} labeled edits across ${scenarios.length} scenarios (${ov.injected} injected, ${ov.safe} safe).
-Judge model: ${apiKey ? JUDGE_MODEL : 'not run (no ANTHROPIC_API_KEY)'}. Generated ${new Date().toISOString()}.
+Judge model: ${apiKey ? JUDGE_MODEL : 'not run (no OPENROUTER_API_KEY)'}. Generated ${new Date().toISOString()}.
 
 | Method | Injected edits marked red | Injected edits flagged (red or amber) | Safe edits wrongly marked red |
 |---|---|---|---|

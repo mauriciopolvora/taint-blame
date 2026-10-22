@@ -1,8 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk'
 import type { ContextInput, Finding, Verdict, WriteInput } from './overlap'
 import { addedText } from './overlap'
 
-export const JUDGE_MODEL = 'claude-haiku-5-5'
+// Claude Haiku through OpenRouter's OpenAI-compatible API.
+export const JUDGE_MODEL = 'anthropic/claude-haiku-5.5'
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const TIMEOUT_MS = 25_000
 const SNIPPET_CHARS = 4000
 
 export type JudgeResult = {
@@ -89,19 +91,29 @@ ${snippets}
 ${hintText}
 </overlap_hints>`
 
-  const client = new Anthropic({ apiKey, timeout: 25_000, maxRetries: 1 })
   try {
-    const res = await client.messages.create({
-      model: JUDGE_MODEL,
-      max_tokens: 2000,
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
-      system: SYSTEM,
-      messages: [{ role: 'user', content: user }],
+    const res = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', 'x-title': 'Taint Blame' },
+      body: JSON.stringify({
+        model: JUDGE_MODEL,
+        max_tokens: 2000,
+        messages: [
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: user },
+        ],
+        response_format: { type: 'json_schema', json_schema: { name: 'attribution', strict: true, schema: SCHEMA } },
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     })
-    if (res.stop_reason === 'refusal') return null
-    const text = res.content.find((b) => b.type === 'text')
-    if (!text || text.type !== 'text') return null
-    const parsed = JSON.parse(text.text) as {
+    if (!res.ok) {
+      console.error(`judge failed: ${res.status} ${(await res.text()).slice(0, 300)}`)
+      return null
+    }
+    const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
+    const content = body.choices?.[0]?.message?.content
+    if (!content) return null
+    const parsed = JSON.parse(content) as {
       verdict: Verdict
       findings: Array<{ snippet_id: string; confidence: number; verdict: 'amber' | 'red'; reason: string }>
     }
@@ -117,8 +129,7 @@ ${hintText}
         })),
     }
   } catch (err) {
-    if (err instanceof Anthropic.APIError) console.error(`judge failed: ${err.status} ${err.message}`)
-    else console.error('judge failed', err)
+    console.error('judge failed', err)
     return null
   }
 }

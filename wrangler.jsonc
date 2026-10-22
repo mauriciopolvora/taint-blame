@@ -13,5 +13,5 @@
       "migrations_dir": "migrations"
     }
   ],
-  "vars": { "JUDGE_ENABLED": "false" }
+  "vars": { "JUDGE_ENABLED": "true" }
 }
