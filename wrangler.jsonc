@@ -1,7 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "taint-blame",
+  "account_id": "b5965ff0224637a290bdb171971beca9",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "main": "@tanstack/react-start/server-entry",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "taint-blame",
+      "database_id": "172170ff-f558-4c24-9ea7-ef1eeb8556ba",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": { "JUDGE_ENABLED": "false" }
 }
