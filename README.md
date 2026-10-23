@@ -1,207 +1,75 @@
-Welcome to your new TanStack Start app!
+# Taint Blame
 
-# Getting Started
+**`git blame` for code your AI agent wrote.** Scanners try to block prompt injection. Taint Blame assumes it gets through and shows you exactly which lines it wrote, and what the agent had read that made it write them.
 
-To run this application:
+🥉 **3rd place** at the AI Security Hackathon: Build, Break, Defend (Lisbon, 22 October 2026).
+
+Landing page: https://taint-blame.mauricio-b59.workers.dev/welcome
+
+## How it works
+
+1. **Record.** A [pi](https://pi.dev) extension records everything the coding agent reads (your prompt, files, command output such as `gh issue view`, tool results) and every edit it makes, and sends both to the server.
+2. **Label inputs** with a simple lookup, no AI: your prompt is *trusted*, files in the repo are *semi*, anything from outside (issues, web pages, command output, files outside the repo) is *untrusted*.
+3. **Blame each edit** against the untrusted inputs read before it:
+   - **Text overlap** (instant): copied URLs, domains, identifiers and token sequences that only appear in untrusted content, and whether the copied piece sits next to an instruction aimed at the agent.
+   - **Claude Haiku judge** (background): reads your prompt, the diff and the untrusted snippets, and decides whether the edit carries out an instruction you never gave. Catches paraphrased attacks.
+4. **Verdict per edit:** 🔴 **Injected** (did something you never asked for, following a hidden instruction), 🟠 **Borrowed** (copied from outside content, but serves your request), 🟢 **Your request**.
+5. **Guard (optional):** the same overlap check runs locally *before* an edit lands, and pi asks "Block this edit?" (`/taint-blame guard on`).
+
+## Results
+
+| Test | Result |
+|---|---|
+| 15 hand-labeled edits, text overlap only | 5/7 injections caught, 0/8 false alarms |
+| 15 hand-labeled edits, overlap + Haiku judge | **7/7** injections caught, 0/8 false alarms |
+| 10 real pi runs (gpt-4o-mini, gpt-4.1-mini) on the [demo repo](https://github.com/mauriciopolvora/retry-kit/issues/1) | Agent followed the injection 10/10; **flagged red 10/10**; 0/17 legitimate edits marked red; median 4 s from edit to verdict |
+| Guard mode, 6 runs | Injected edit blocked 6/6, real fix still landed |
+| Semgrep, gitleaks, npm audit | Clean after fixes ([reports](evidence/scans/README.md)) |
+
+Details: [evidence/eval-report.md](evidence/eval-report.md), [evidence/live-runs.md](evidence/live-runs.md).
+
+## Repository
+
+| Path | What |
+|---|---|
+| `src/server/` | Ingest (`POST /api/events`, bearer token, constant-time compare, body limits) and attribution (`attribution/overlap.ts`, `attribution/judge.ts`) |
+| `src/routes/` | Dashboard (sessions, blame view, settings), landing page (`/welcome`), API routes |
+| `adapters/pi/` | The pi extension: recording, guard, `/taint-blame` command |
+| `adapters/shared/client.mjs` | Redaction of secrets, 20 KB cap, background send with a local retry queue |
+| `migrations/` | D1 schema |
+| `scripts/eval/` | Labeled scenarios and the live-run harness |
+| `demo/` | The demo fixture (`retry-kit`) and a local fake issue server |
+
+## Run it yourself
+
+Stack: TanStack Start on Cloudflare Workers, D1, Claude Haiku via OpenRouter.
 
 ```bash
 npm install
-npm run dev
+npx wrangler d1 create taint-blame          # put the id in wrangler.jsonc
+npx wrangler d1 migrations apply taint-blame --remote
+npx wrangler secret put INGEST_TOKEN        # any long random string
+npx wrangler secret put OPENROUTER_API_KEY  # optional, enables the Haiku judge
+npm run deploy
 ```
 
-# Building For Production
-
-To build this application for production:
+Then point the pi extension at it:
 
 ```bash
-npm run build
+mkdir -p .taint-blame && chmod 700 .taint-blame
+printf 'TAINT_BLAME_URL=https://<your-worker>\nTAINT_BLAME_TOKEN=<token>\n' > .taint-blame/config.env
+chmod 600 .taint-blame/config.env
+bin/install-pi    # symlinks the extension into ~/.pi/agent/extensions
 ```
 
-## Styling
+Start `pi` in any project and type `/taint-blame` for status and settings. See [adapters/pi/README.md](adapters/pi/README.md).
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+## Security notes
 
-### Removing Tailwind CSS
+- Ingest and destructive dashboard actions require the bearer token; the dashboard itself is read-only and open.
+- Adapters redact API keys, tokens, private keys and `.env` values before sending, and cap payloads at 20 KB.
+- The Haiku judge treats untrusted snippets as data and returns structured output; it can itself be targeted by injection, which is the main thing to harden next.
 
-If you prefer not to use Tailwind CSS:
+## Roadmap
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-npm run lint
-npm run format
-npm run check
-```
-
-
-## Deploy to Cloudflare Workers
-
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`:
-
-1. Install Wrangler: `npm install -g wrangler`
-2. Authenticate: `wrangler login`
-3. Deploy: `npx wrangler deploy`
-
-For production env vars, run `wrangler secret put MY_VAR` for each secret listed in `.env.example`. Public (non-secret) vars go in `wrangler.jsonc` under `vars`.
-
-KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+Tracking lines across later commits, multi-step data flow (agent writes a file, reads it back, acts on it), behavior signals (new network calls, env access, dependencies), blame summaries in pull requests, more agents, a tamper-evident event log.
