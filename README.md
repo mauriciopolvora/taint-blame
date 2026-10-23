@@ -4,7 +4,7 @@
 
 🥉 **3rd place** at the AI Security Hackathon: Build, Break, Defend (Lisbon, 22 October 2026).
 
-Landing page: https://taint-blame.mauricio-b59.workers.dev/welcome
+The hosted demo has been taken down; see [Run it yourself](#run-it-yourself) to deploy your own.
 
 ## How it works
 
