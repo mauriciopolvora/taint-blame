@@ -6,6 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
+    "prepare": "if [ -e .git ]; then git config core.hooksPath .githooks; fi",
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
     "build": "vite build",
