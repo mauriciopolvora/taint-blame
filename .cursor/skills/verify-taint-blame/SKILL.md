@@ -23,11 +23,12 @@ node .cursor/skills/verify-taint-blame/control.mjs seed
 
 Skip `npm ci` when `node_modules` is already present.
 
-`launch` does three things:
+`launch` does four things:
 
-1. It makes sure `.dev.vars` is the verify fixture: `INGEST_TOKEN=verify-local-token` and `JUDGE_ENABLED=false`. When the file is missing, launch writes it and cleanup removes it again. When the file has other content, launch stops and asks you to move it aside. It never prints, uses or changes your own `.dev.vars`.
-2. It applies `migrations/` to local D1 with `wrangler d1 migrations apply taint-blame --local`.
-3. It runs `npm run dev` (Vite on port 3000, workerd, local D1) in its own process group, and waits until `GET /` is HTTP 200 with the title `Taint Blame`.
+1. It stops when `wrangler.jsonc` marks a binding `"remote": true`, because the dev server would then use a remote resource.
+2. It makes sure `.dev.vars` is the verify fixture: `INGEST_TOKEN=verify-local-token` and `JUDGE_ENABLED=false`. When no `.dev.vars` exists, launch creates it (exclusive create) and records its inode, size and mtime. Cleanup removes the file only when it still has that identity. When a `.dev.vars` exists that this skill did not create, launch stops and asks you to move it aside. The skill never reads, prints, uses or changes your own `.dev.vars`.
+3. It applies `migrations/` to local D1 with `wrangler d1 migrations apply taint-blame --local`.
+4. It runs `npm run dev` (Vite on port 3000, workerd, local D1) in its own process group, and waits until `GET /` is HTTP 200 with the title `Taint Blame`.
 
 The log is `node_modules/.cache/verify-taint-blame/dev.log`. If the shell `node` is older than 22.18, the helper re-execs with a newer Node from `~/.nvm` when one is installed.
 
@@ -58,7 +59,7 @@ Chrome comes from `CHROME_PATH`, else `google-chrome` or `chromium` on `PATH`. W
 node .cursor/skills/verify-taint-blame/control.mjs browser goto --path /settings
 node .cursor/skills/verify-taint-blame/control.mjs browser fill --role textbox --name "Ingest token" --value "verify-local-token"
 node .cursor/skills/verify-taint-blame/control.mjs browser click --role button --name "Verify"
-node .cursor/skills/verify-taint-blame/control.mjs browser wait --text "Connected"
+node .cursor/skills/verify-taint-blame/control.mjs browser wait --line "Connected"
 node .cursor/skills/verify-taint-blame/control.mjs browser click --role link --name-contains "1 injected in retry.ts"
 node .cursor/skills/verify-taint-blame/control.mjs ingest --file .cursor/skills/verify-taint-blame/features/fixtures/injected-session.json --session live-r1 --repo live-r1
 ```
@@ -89,7 +90,7 @@ node .cursor/skills/verify-taint-blame/control.mjs browser screenshot --path art
 node .cursor/skills/verify-taint-blame/control.mjs cleanup
 ```
 
-This sends SIGTERM, then SIGKILL, to the process groups recorded for the dev server and every Chrome profile. It deletes the Chrome profiles and the run json files, and the `.dev.vars` fixture when launch wrote it. It does not delete `artifacts/verify-taint-blame/` or `.wrangler/`. After a failed launch or a stuck browser, run cleanup before starting again. Do not kill `node` or `chrome` by name.
+This sends SIGTERM, then SIGKILL, to the process groups recorded for the dev server and every Chrome profile. It signals a group only when the group leader has the start time that launch recorded, so a recycled pid is never killed. Launch and Chrome write their records as soon as the process starts, so cleanup also finds the processes of a launch that failed. Every command that talks to the app (`doctor`, `ingest` and every `browser` command) first checks that the listener on port 3000 is in the recorded process group. It deletes the Chrome profiles and the run json files, and the `.dev.vars` fixture when launch wrote it. It does not delete `artifacts/verify-taint-blame/` or `.wrangler/`. After a failed launch or a stuck browser, run cleanup before starting again. Do not kill `node` or `chrome` by name.
 
 Sessions that recipes send (`live-*`, `del-*`) stay in local D1. They do not break later recipes, because each recipe matches its own run word.
 
@@ -116,11 +117,12 @@ The runner proves that the commands in a recipe succeed. It does not read the sc
 | `browser click --role <role> --name <name>` | Clicks the single accessible node with that role and name. Fails when the node is disabled. |
 | `browser fill --role <role> --name <name> --value <value>` | Focuses that control and sets its value so React sees the input. |
 | `browser wait --text <text>` | Waits until the visible page text contains `<text>`. Optional `--timeout` milliseconds, default `TAINT_BLAME_WAIT_MS` or 15000. |
-| `browser wait --role <role> --name <name>` | Waits until one or more nodes match. |
-| `browser wait ... --gone` | With `--text` or `--role` and a name, waits until the text or every matching node is gone. |
+| `browser wait --line <text>` | Waits until one line of the visible page text is exactly `<text>`. Use it when a longer text holds the same words, for example the status `Connected` and the heading `Connected agent`. |
+| `browser wait --role <role> --name <name>` | Waits until one or more nodes match. Add `--disabled` to wait for a disabled node. |
+| `browser wait ... --gone` | With `--text`, `--line` or `--role` and a name, waits until the text or every matching node is gone. Every wait samples the page only after the document has loaded. |
 | `browser snapshot --aria --path <path>` | Writes the accessible tree and prints it. |
 | `browser screenshot --path <path>` | Writes a PNG of the 1280×900 page. |
-| `browser reload` | Reloads the current page and keeps the profile's local storage. |
+| `browser reload` | Reloads the current page, waits for the new document, and keeps the profile's local storage. |
 | `browser goto --path <path>` | Opens `<path>` on the app origin. It refuses a path that leaves the origin, a `#fragment`, and an HTTP status of 400 or more. |
 
 Every `--name` also has a `--name-contains <part>` form, which matches a part of the accessible name, and an `--in <role>` scope, which keeps only nodes inside a node with that role. A session page has two `Sessions` links (the sidebar and the breadcrumb), so the recipes use `--name "Sessions" --in complementary`. Every browser command takes `--profile <id>` (lowercase letters and digits) to drive that profile instead of the first one.
