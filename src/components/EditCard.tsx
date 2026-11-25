@@ -1,21 +1,12 @@
 import { useMemo } from 'react'
 import type { ContextEvent, WriteEvent } from '#/server/queries'
 import { Diff, diffStats } from './DiffView'
-import {
-  type Excerpt,
-  type Range,
-  describeInput,
-  excerpt,
-  explain,
-  headlineFor,
-  splitOverlapReason,
-  v,
-  relPath,
-} from './explain'
+import { describeInput, excerpt, explain, headlineFor, splitOverlapReason, v, relPath } from './explain'
+import type { Excerpt, Range } from './explain'
 import { Time, VerdictChip, verdictVar } from './ui'
 
-export function Highlighted({ text, ranges, tone }: { text: string; ranges: Range[]; tone: 'red' | 'amber' | 'green' }) {
-  const parts: React.ReactNode[] = []
+export function Highlighted({ text, ranges, tone }: { text: string; ranges: Array<Range>; tone: 'red' | 'amber' | 'green' }) {
+  const parts: Array<React.ReactNode> = []
   let pos = 0
   for (const [s, e] of ranges) {
     if (s > pos) parts.push(text.slice(pos, s))

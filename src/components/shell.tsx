@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useId, useRef, useState } from 'react'
-import { type LiveState } from './live'
+import type { LiveState } from './live'
 import { LiveBadge } from './ui'
 
 // App frame: a sidebar on wide screens, a top bar with a drawer on narrow ones.
@@ -8,7 +8,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const path = useRouterState({ select: (s) => s.location.pathname })
   // Close the drawer whenever the route changes.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: path is the trigger
   useEffect(() => setOpen(false), [path])
 
   return (
@@ -77,7 +76,7 @@ function Sidebar({ path }: { path: string }) {
             M
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13.5px] font-medium">Mauricio's workspace</span>
+            <span className="block truncate text-[13.5px] font-medium">Mauricio&apos;s workspace</span>
             <span className="block text-[12px] text-faint">Personal · Free</span>
           </span>
           <svg aria-hidden width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" className="text-faint">

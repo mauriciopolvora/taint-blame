@@ -1,9 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { VERDICT_HINT, type VerdictOrPending, basename } from '#/components/explain'
+import { VERDICT_HINT, basename } from '#/components/explain'
+import type { VerdictOrPending } from '#/components/explain'
 import { useArrivals, useLiveRefresh } from '#/components/live'
 import { AppShell, PAGE, PageHeader } from '#/components/shell'
 import { AgentName, Ago, VerdictChip, repoName } from '#/components/ui'
-import { type SessionSummary, listSessions } from '#/server/queries'
+import { listSessions } from '#/server/queries'
+import type { SessionSummary } from '#/server/queries'
 
 export const Route = createFileRoute('/')({
   loader: () => listSessions(),
@@ -48,7 +50,7 @@ function Home() {
 
 // The three verdicts on one line each side by side, small enough to sit above the table.
 function LegendCompact() {
-  const items: VerdictOrPending[] = ['red', 'amber', 'green']
+  const items: Array<VerdictOrPending> = ['red', 'amber', 'green']
   return (
     <dl className="m-0 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
       {items.map((k) => (
@@ -67,7 +69,7 @@ function LegendCompact() {
 
 const COLS = 'md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_72px_132px_104px]'
 
-function SessionList({ sessions, isFresh }: { sessions: SessionSummary[]; isFresh: (id: string) => boolean }) {
+function SessionList({ sessions, isFresh }: { sessions: Array<SessionSummary>; isFresh: (id: string) => boolean }) {
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-panel">
       <div className={`hidden h-9 items-center gap-4 border-b border-line px-5 md:grid ${COLS}`}>

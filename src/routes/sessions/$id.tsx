@@ -2,12 +2,14 @@ import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-ro
 import { useEffect, useMemo, useState } from 'react'
 import { EditCard } from '#/components/EditCard'
 import { InputTimeline } from '#/components/InputTimeline'
-import { VERDICT_HINT, type VerdictOrPending, sessionSummary, v } from '#/components/explain'
+import { VERDICT_HINT, sessionSummary, v } from '#/components/explain'
+import type { VerdictOrPending } from '#/components/explain'
 import { useArrivals, useLiveRefresh } from '#/components/live'
 import { AppShell, Button, ConfirmDialog, PAGE, PageHeader, toast } from '#/components/shell'
 import { readToken, resetSessions } from '#/components/token'
 import { AgentName, Ago, VerdictChip, repoName, verdictVar } from '#/components/ui'
-import { type ContextEvent, type WriteEvent, getSession } from '#/server/queries'
+import { getSession } from '#/server/queries'
+import type { ContextEvent, WriteEvent } from '#/server/queries'
 
 export const Route = createFileRoute('/sessions/$id')({
   loader: async ({ params }) => {
@@ -39,7 +41,7 @@ function SessionPage() {
   const isFresh = useArrivals(useMemo(() => [...contexts.map((c) => c.id), ...writes.map((w) => w.id)], [contexts, writes]))
 
   const groups = useMemo(() => {
-    const g: Record<VerdictOrPending, WriteEvent[]> = { red: [], amber: [], green: [], pending: [] }
+    const g: Record<VerdictOrPending, Array<WriteEvent>> = { red: [], amber: [], green: [], pending: [] }
     for (const w of writes) g[v(w.verdict)].push(w)
     return g
   }, [writes])
@@ -167,7 +169,7 @@ function DeleteSession({ id }: { id: string }) {
         action="Delete session"
         busy={busy}
         error={error}
-        onConfirm={confirm}
+        onConfirm={() => void confirm()}
         onClose={() => setOpen(false)}
       />
     </>
@@ -191,7 +193,7 @@ function GreenSection({
   cwd,
   isFresh,
 }: {
-  writes: WriteEvent[]
+  writes: Array<WriteEvent>
   ctx: Map<string, ContextEvent>
   cwd: string | null
   isFresh: (id: string) => boolean
@@ -227,9 +229,9 @@ function Summary({
   contexts,
 }: {
   tone: VerdictOrPending
-  lines: string[]
-  groups: Record<VerdictOrPending, WriteEvent[]>
-  contexts: ContextEvent[]
+  lines: Array<string>
+  groups: Record<VerdictOrPending, Array<WriteEvent>>
+  contexts: Array<ContextEvent>
 }) {
   const outside = contexts.filter((x) => x.trust === 'untrusted').length
   const [first, ...rest] = lines
@@ -240,7 +242,6 @@ function Summary({
       </p>
       {rest.map((l, i) => (
         <p
-          // biome-ignore lint/suspicious/noArrayIndexKey: sentences are positional
           key={i}
           className="m-0 mt-3 max-w-[64ch] text-[18px] leading-relaxed text-pretty"
           style={{ color: i === 0 && tone === 'red' ? verdictVar.red : 'var(--color-muted)' }}

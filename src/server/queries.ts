@@ -27,7 +27,7 @@ export type SessionSummary = {
   // newest input or edit timestamp (falls back to started_at)
   last_activity: number
   // files touched by injected edits
-  red_files: string[]
+  red_files: Array<string>
 }
 
 export type ContextEvent = {
@@ -53,21 +53,21 @@ export type WriteEvent = {
   file_path: string
   old_text: string
   new_text: string
-  context_ids: string[]
+  context_ids: Array<string>
   verdict: Verdict | null
   attributed_at: number | null
-  attributions: Attribution[]
+  attributions: Array<Attribution>
 }
 
 export type SessionDetail = {
   session: { id: string; agent: string; cwd: string | null; started_at: number }
-  contexts: ContextEvent[]
-  writes: WriteEvent[]
+  contexts: Array<ContextEvent>
+  writes: Array<WriteEvent>
 }
 
 const isInfluenced = (v: string | null) => v === 'red' || v === 'amber'
 
-export const listSessions = createServerFn({ method: 'GET' }).handler(async (): Promise<SessionSummary[]> => {
+export const listSessions = createServerFn({ method: 'GET' }).handler(async (): Promise<Array<SessionSummary>> => {
   const db = env.DB
   const [sessions, ctx, writes] = await db.batch([
     db.prepare('SELECT id, agent, cwd, started_at FROM sessions ORDER BY started_at DESC LIMIT 200'),
@@ -77,14 +77,15 @@ export const listSessions = createServerFn({ method: 'GET' }).handler(async (): 
     ),
     db.prepare('SELECT session_id, ts, file_path, verdict, new_text FROM write_events'),
   ])
+  if (!sessions || !ctx || !writes) throw new Error('D1 batch returned fewer results than statements')
 
   const ctxBy = new Map<string, { inputs: number; untrusted: number; last_ts: number }>()
-  for (const r of ctx.results as { session_id: string; inputs: number; untrusted: number; last_ts: number }[]) {
+  for (const r of ctx.results as Array<{ session_id: string; inputs: number; untrusted: number; last_ts: number }>) {
     ctxBy.set(r.session_id, { inputs: r.inputs, untrusted: r.untrusted ?? 0, last_ts: r.last_ts ?? 0 })
   }
 
   const out = new Map<string, SessionSummary>()
-  for (const s of sessions.results as { id: string; agent: string; cwd: string | null; started_at: number }[]) {
+  for (const s of sessions.results as Array<{ id: string; agent: string; cwd: string | null; started_at: number }>) {
     const c = ctxBy.get(s.id)
     out.set(s.id, {
       ...s,
@@ -102,13 +103,13 @@ export const listSessions = createServerFn({ method: 'GET' }).handler(async (): 
       red_files: [],
     })
   }
-  for (const w of writes.results as {
+  for (const w of writes.results as Array<{
     session_id: string
     ts: number
     file_path: string
     verdict: Verdict | null
     new_text: string
-  }[]) {
+  }>) {
     const s = out.get(w.session_id)
     if (!s) continue
     s.last_activity = Math.max(s.last_activity, w.ts)
@@ -151,12 +152,13 @@ export const getSession = createServerFn({ method: 'GET' })
         )
         .bind(id),
     ])
+    if (!sess || !ctx || !writes || !attrs) throw new Error('D1 batch returned fewer results than statements')
 
     const session = sess.results[0] as SessionDetail['session'] | undefined
     if (!session) return null
 
-    const attrBy = new Map<string, Attribution[]>()
-    for (const a of attrs.results as (Attribution & { write_id: string })[]) {
+    const attrBy = new Map<string, Array<Attribution>>()
+    for (const a of attrs.results as Array<Attribution & { write_id: string }>) {
       const { write_id, ...rest } = a
       const list = attrBy.get(write_id) ?? []
       list.push(rest)
@@ -165,8 +167,8 @@ export const getSession = createServerFn({ method: 'GET' })
 
     return {
       session,
-      contexts: ctx.results as ContextEvent[],
-      writes: (writes.results as (Omit<WriteEvent, 'context_ids' | 'attributions'> & { context_ids: string })[]).map(
+      contexts: ctx.results as Array<ContextEvent>,
+      writes: (writes.results as Array<Omit<WriteEvent, 'context_ids' | 'attributions'> & { context_ids: string }>).map(
         (w) => ({
           ...w,
           context_ids: parseIds(w.context_ids),
@@ -176,7 +178,7 @@ export const getSession = createServerFn({ method: 'GET' })
     }
   })
 
-function parseIds(raw: string): string[] {
+function parseIds(raw: string): Array<string> {
   try {
     const v = JSON.parse(raw)
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []

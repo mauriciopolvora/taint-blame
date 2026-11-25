@@ -34,7 +34,7 @@ export function useLiveRefresh(ms = 2500): { state: LiveState; updatedAt: number
           inFlight = false
         }
       }
-      timer = setTimeout(tick, ms)
+      timer = setTimeout(() => void tick(), ms)
     }
 
     const onVisibility = () => {
@@ -44,7 +44,7 @@ export function useLiveRefresh(ms = 2500): { state: LiveState; updatedAt: number
     }
 
     setUpdatedAt(Date.now())
-    timer = setTimeout(tick, ms)
+    timer = setTimeout(() => void tick(), ms)
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       stopped = true
@@ -58,7 +58,7 @@ export function useLiveRefresh(ms = 2500): { state: LiveState; updatedAt: number
 
 // Returns a predicate that is true for ids that appeared after the first
 // render, so only rows that arrive live get an enter animation.
-export function useArrivals(ids: string[]): (id: string) => boolean {
+export function useArrivals(ids: Array<string>): (id: string) => boolean {
   const seen = useRef<Set<string> | null>(null)
   if (seen.current === null) seen.current = new Set(ids)
   const known = seen.current

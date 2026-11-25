@@ -1,7 +1,8 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useId, useState } from 'react'
 import { AgentCard, AppShell, Button, ConfirmDialog, PAGE, PageHeader, toast } from '#/components/shell'
-import { type VerifyResult, readToken, resetSessions, saveToken, verifyToken } from '#/components/token'
+import { readToken, resetSessions, saveToken, verifyToken } from '#/components/token'
+import type { VerifyResult } from '#/components/token'
 
 export const Route = createFileRoute('/settings')({
   head: () => ({ meta: [{ title: 'Settings · Taint Blame' }] }),
@@ -145,7 +146,7 @@ function TokenSection({ saved, onSaved }: { saved: string; onSaved: (t: string) 
             {show ? 'Hide' : 'Show'}
           </button>
         </div>
-        <Button className="h-9" disabled={!value.trim() || status === 'checking'} onClick={verify}>
+        <Button className="h-9" disabled={!value.trim() || status === 'checking'} onClick={() => void verify()}>
           Verify
         </Button>
       </div>
@@ -209,7 +210,7 @@ function DangerZone({ token }: { token: string }) {
         action="Delete all sessions"
         busy={busy}
         error={error}
-        onConfirm={confirm}
+        onConfirm={() => void confirm()}
         onClose={() => setOpen(false)}
       />
     </Card>

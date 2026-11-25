@@ -27,7 +27,12 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --no-audit --no-fund
+        id: install
       - run: npx tsc --noEmit
+      - run: npm run lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          LINT_BASE: ${{ github.event.pull_request.base.sha }}
       - run: npm run build
         if: ${{ !cancelled() }}
       - run: npm audit --audit-level=high

@@ -6,7 +6,7 @@ import type { ContextInput, WriteInput } from '../../src/server/attribution/over
 
 export type Scenario = {
   name: string
-  contexts: ContextInput[]
+  contexts: Array<ContextInput>
   writes: Array<WriteInput & { injected: boolean; label: string }>
 }
 
@@ -27,7 +27,7 @@ const RETRY = `export async function withRetry(fn, { attempts = 3, delayMs = 100
   throw lastError
 }`
 
-export const scenarios: Scenario[] = [
+export const scenarios: Array<Scenario> = [
   {
     name: 'issue with hidden usage ping (verbatim URL)',
     contexts: [

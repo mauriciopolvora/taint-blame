@@ -1,4 +1,4 @@
-import type { Attribution, ContextEvent, Verdict, WriteEvent } from '#/server/queries'
+import type { ContextEvent, Verdict, WriteEvent } from '#/server/queries'
 
 // Turns raw rows into plain-English labels and explanations. No LLM: every
 // sentence here is assembled from the data.
@@ -32,7 +32,7 @@ export type InputInfo = {
   label: string // "GitHub issue"
   noun: string // "a GitHub issue", used mid-sentence
   detail: string // "acme/acme-http#482", path, command…
-  short?: string // compact detail for use inside sentences
+  short?: string | undefined // compact detail for use inside sentences
   outside: boolean // came from outside the user and their repo
 }
 
@@ -48,7 +48,7 @@ export function describeInput(c: ContextEvent | undefined, cwd?: string | null):
 
   const gh = ref.match(GH_WEB_ISSUE) ?? ref.match(GH_API_ISSUE)
   if (gh && (src === 'web_fetch' || src === 'bash' || src.startsWith('mcp'))) {
-    const pr = gh[3].startsWith('pull')
+    const pr = (gh[3] ?? '').startsWith('pull')
     return {
       kind: 'github',
       label: pr ? 'GitHub pull request' : 'GitHub issue',
@@ -92,7 +92,7 @@ export function describeInput(c: ContextEvent | undefined, cwd?: string | null):
       return { kind: 'agent', label: 'Sub-agent report', noun: 'a sub-agent report', detail: ref, outside }
   }
   if (src.startsWith('mcp')) {
-    const name = src.replace(/^mcp[:_]+/, '').replace(/__/g, ' · ')
+    const name = src.replace(/^mcp[:_]+/, '').replaceAll('__', ' · ')
     return { kind: 'tool', label: `Tool: ${name}`, noun: `the ${name} tool`, detail: ref, outside }
   }
   return { kind: 'tool', label: `Tool: ${src}`, noun: `the ${src} tool`, detail: ref, outside }
@@ -140,13 +140,13 @@ export function basename(p: string): string {
 export function splitOverlapReason(reason: string | null): { text: string; fragment: string | null } {
   if (!reason) return { text: '', fragment: null }
   const m = reason.match(/^(.*) \| "(.*)"$/s)
-  return m ? { text: m[1], fragment: m[2] } : { text: reason, fragment: null }
+  return m ? { text: m[1] ?? '', fragment: m[2] ?? null } : { text: reason, fragment: null }
 }
 
 // Quoted pieces inside a reason: "..." “...” `...`
-function quoted(reason: string): string[] {
-  const out: string[] = []
-  for (const m of reason.matchAll(/"([^"]{6,})"|“([^”]{6,})”|`([^`]{6,})`/g)) out.push((m[1] ?? m[2] ?? m[3]).trim())
+function quoted(reason: string): Array<string> {
+  const out: Array<string> = []
+  for (const m of reason.matchAll(/"([^"]{6,})"|“([^”]{6,})”|`([^`]{6,})`/g)) out.push((m[1] ?? m[2] ?? m[3] ?? '').trim())
   return out
 }
 
@@ -154,8 +154,8 @@ export type Explanation = {
   verdict: VerdictOrPending
   cause: ContextEvent | null // the input most responsible for the verdict
   why: string | null // best human explanation (judge reason preferred)
-  matched: string[] // text fragments shared between the edit and the cause
-  fragments: string[] // everything worth highlighting in the cause
+  matched: Array<string> // text fragments shared between the edit and the cause
+  fragments: Array<string> // everything worth highlighting in the cause
 }
 
 const METHOD_RANK = { llm: 1, overlap: 0 } as const
@@ -166,15 +166,15 @@ export function explain(w: WriteEvent, ctx: Map<string, ContextEvent>): Explanat
   const pool = same.length ? same : w.attributions
   const best = [...pool].sort(
     (a, b) => METHOD_RANK[b.method] - METHOD_RANK[a.method] || b.confidence - a.confidence,
-  )[0] as Attribution | undefined
+  )[0]
 
   const cause = best ? (ctx.get(best.context_id) ?? null) : null
   const forCause = best ? w.attributions.filter((a) => a.context_id === best.context_id) : []
   const llm = forCause.find((a) => a.method === 'llm' && a.reason) ?? same.find((a) => a.method === 'llm' && a.reason)
   const overlaps = forCause.filter((a) => a.method === 'overlap')
 
-  const matched: string[] = []
-  const fragments: string[] = []
+  const matched: Array<string> = []
+  const fragments: Array<string> = []
   for (const a of overlaps) {
     const { text, fragment } = splitOverlapReason(a.reason)
     if (fragment) matched.push(fragment)
@@ -192,7 +192,7 @@ export function explain(w: WriteEvent, ctx: Map<string, ContextEvent>): Explanat
   return { verdict, cause, why, matched: dedupe(matched), fragments: dedupe(fragments) }
 }
 
-function dedupe(xs: string[]): string[] {
+function dedupe(xs: Array<string>): Array<string> {
   return [...new Set(xs.filter(Boolean))]
 }
 
@@ -215,11 +215,11 @@ export function headlineFor(verdict: VerdictOrPending, cause: InputInfo | null):
 
 export type Range = [number, number]
 
-export function findRanges(content: string, frags: string[]): Range[] {
+export function findRanges(content: string, frags: Array<string>): Array<Range> {
   const lower = content.toLowerCase()
-  const ranges: Range[] = []
+  const ranges: Array<Range> = []
   for (const f of frags) {
-    for (const needle of [f, f.replace(/`/g, '')]) {
+    for (const needle of [f, f.replaceAll('`', '')]) {
       if (needle.length < 4) continue
       const idx = lower.indexOf(needle.toLowerCase())
       if (idx >= 0) {
@@ -229,9 +229,9 @@ export function findRanges(content: string, frags: string[]): Range[] {
     }
   }
   ranges.sort((a, b) => a[0] - b[0])
-  const merged: Range[] = []
+  const merged: Array<Range> = []
   for (const r of ranges) {
-    const last = merged[merged.length - 1]
+    const last = merged.at(-1)
     if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1])
     else merged.push([...r])
   }
@@ -240,7 +240,7 @@ export function findRanges(content: string, frags: string[]): Range[] {
 
 export type Excerpt = {
   text: string
-  ranges: Range[] // relative to text
+  ranges: Array<Range> // relative to text
   hidden: boolean // inside an HTML comment, i.e. invisible on the rendered page
   clippedStart: boolean
   clippedEnd: boolean
@@ -254,17 +254,18 @@ const MAX_SIDE = 220
 export function readable(t: string): string {
   if (!/^\s*[{[]/.test(t)) return t
   return t
-    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(Number.parseInt(h, 16)))
-    .replace(/\\n/g, '\n')
-    .replace(/\\t/g, '\t')
-    .replace(/\\"/g, '"')
+    .replaceAll(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(Number.parseInt(h, 16)))
+    .replaceAll(String.raw`\n`, '\n')
+    .replaceAll(String.raw`\t`, '\t')
+    .replaceAll(String.raw`\"`, '"')
 }
 
-export function excerpt(raw: string, frags: string[]): Excerpt | null {
+export function excerpt(raw: string, frags: Array<string>): Excerpt | null {
   const content = readable(raw)
   const all = findRanges(content, frags)
-  if (all.length === 0) return null
-  const [s0, e0] = all[0]
+  const first = all[0]
+  if (!first) return null
+  const [s0, e0] = first
 
   let start: number
   let end: number
@@ -287,8 +288,8 @@ export function excerpt(raw: string, frags: string[]): Excerpt | null {
   if (clippedEnd) end = wordBoundary(content, e0 + side, -1)
 
   // Trim whitespace, keeping ranges aligned.
-  while (start < s0 && /\s/.test(content[start])) start++
-  while (end > e0 && /\s/.test(content[end - 1])) end--
+  while (start < s0 && /\s/.test(content.charAt(start))) start++
+  while (end > e0 && /\s/.test(content.charAt(end - 1))) end--
 
   const ranges = all
     .filter(([s, e]) => s >= start && e <= end)
@@ -298,14 +299,14 @@ export function excerpt(raw: string, frags: string[]): Excerpt | null {
 
 function wordBoundary(t: string, i: number, dir: 1 | -1): number {
   let k = i
-  for (let n = 0; n < 30 && k > 0 && k < t.length && !/\s/.test(t[k]); n++) k += dir
+  for (let n = 0; n < 30 && k > 0 && k < t.length && !/\s/.test(t.charAt(k)); n++) k += dir
   return k
 }
 
 function sentenceStart(t: string, i: number): number {
   for (let k = i - 1; k > 0; k--) {
     if (t[k] === '\n' && t[k - 1] === '\n') return k + 1
-    if (/[.!?]/.test(t[k - 1]) && /\s/.test(t[k])) return k
+    if (/[.!?]/.test(t.charAt(k - 1)) && /\s/.test(t.charAt(k))) return k
   }
   return 0
 }
@@ -313,7 +314,7 @@ function sentenceStart(t: string, i: number): number {
 function sentenceEnd(t: string, i: number): number {
   for (let k = i; k < t.length; k++) {
     if (t[k] === '\n' && t[k + 1] === '\n') return k
-    if (/[.!?]/.test(t[k]) && (k + 1 >= t.length || /\s/.test(t[k + 1]))) return k + 1
+    if (/[.!?]/.test(t.charAt(k)) && (k + 1 >= t.length || /\s/.test(t.charAt(k + 1)))) return k + 1
   }
   return t.length
 }
@@ -322,15 +323,15 @@ function sentenceEnd(t: string, i: number): number {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
-export function sessionSummary(writes: WriteEvent[], ctx: Map<string, ContextEvent>, cwd: string | null): string[] {
+export function sessionSummary(writes: Array<WriteEvent>, ctx: Map<string, ContextEvent>, cwd: string | null): Array<string> {
   if (writes.length === 0) return ['The agent has not edited any files yet.']
   const files = new Set(writes.map((w) => w.file_path)).size
-  const by = { red: [] as WriteEvent[], amber: [] as WriteEvent[], green: [] as WriteEvent[], pending: [] as WriteEvent[] }
+  const by = { red: [] as Array<WriteEvent>, amber: [] as Array<WriteEvent>, green: [] as Array<WriteEvent>, pending: [] as Array<WriteEvent> }
   for (const w of writes) by[v(w.verdict)].push(w)
 
   const out = [`The agent made ${plural(writes.length, 'edit')} in ${plural(files, 'file')}.`]
 
-  const sources = (ws: WriteEvent[]) => {
+  const sources = (ws: Array<WriteEvent>) => {
     const seen = new Map<string, string>()
     for (const w of ws) {
       const info = describeInput(explain(w, ctx).cause ?? undefined, cwd)
@@ -340,7 +341,7 @@ export function sessionSummary(writes: WriteEvent[], ctx: Map<string, ContextEve
     }
     return joinList([...seen.values()])
   }
-  const inFiles = (ws: WriteEvent[]) => joinList([...new Set(ws.map((w) => basename(w.file_path)))])
+  const inFiles = (ws: Array<WriteEvent>) => joinList([...new Set(ws.map((w) => basename(w.file_path)))])
 
   if (by.red.length) {
     const n = by.red.length
@@ -365,7 +366,7 @@ export function sessionSummary(writes: WriteEvent[], ctx: Map<string, ContextEve
   return out
 }
 
-function joinList(xs: string[]): string {
+function joinList(xs: Array<string>): string {
   if (xs.length <= 1) return xs[0] ?? ''
-  return `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
+  return `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`
 }

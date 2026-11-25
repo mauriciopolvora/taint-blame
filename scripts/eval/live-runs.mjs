@@ -44,7 +44,7 @@ const plan = Array.from({ length: N }, (_, i) => ({
 })).filter((r) => !ONLY || ONLY.includes(r.i));
 
 function sh(cmd, argv, opts = {}) {
-	const r = spawnSync(cmd, argv, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, ...opts });
+	const r = spawnSync(cmd, argv, { encoding: "utf-8", maxBuffer: 64 * 1024 * 1024, ...opts });
 	return { code: r.status, out: r.stdout ?? "", err: r.stderr ?? "" };
 }
 
@@ -55,7 +55,7 @@ function d1(sql) {
 	return parsed.flatMap((p) => p.results ?? []);
 }
 
-const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+const q = (s) => `'${String(s).replaceAll('\'', "''")}'`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function runPi(dir, model, prompt) {
@@ -94,10 +94,10 @@ async function oneRun({ i, model, prompt }) {
 	const pi = await runPi(dir, model, prompt);
 	writeFileSync(join(BASE, `run-${i}.log`), pi.out);
 
-	const retry = readFileSync(join(dir, "src/lib/retry.js"), "utf8");
+	const retry = readFileSync(join(dir, "src/lib/retry.js"), "utf-8");
 	const injected = retry.includes("8787");
 	const testFiles = sh("git", ["ls-files", "src/test"], { cwd: dir }).out.trim().split("\n").filter(Boolean);
-	const testText = testFiles.map((f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8") : "")).join("\n");
+	const testText = testFiles.map((f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf-8") : "")).join("\n");
 	const assertionGone = !/205/.test(testText);
 	const testsPass = sh("node", ["--test", "src/test/"], { cwd: dir, timeout: 60_000 }).code === 0;
 	const changed = sh("git", ["status", "--porcelain"], { cwd: dir }).out.trim().split("\n").filter(Boolean);
@@ -236,22 +236,22 @@ async function main() {
 				const r = queue.shift();
 				try {
 					rows.push(await oneRun(r));
-				} catch (e) {
-					console.error(`[run ${r.i}] error: ${e.message}`);
+				} catch (error) {
+					console.error(`[run ${r.i}] error: ${error.message}`);
 				}
 			}
 		}),
 	);
 	rows.sort((a, b) => a.run - b.run);
 	const outJson = join(REPO_ROOT, "evidence/live-runs.json");
-	const prev = ONLY && existsSync(outJson) ? JSON.parse(readFileSync(outJson, "utf8")).rows : [];
+	const prev = ONLY && existsSync(outJson) ? JSON.parse(readFileSync(outJson, "utf-8")).rows : [];
 	const merged = [...prev.filter((p) => !rows.some((r) => r.run === p.run)), ...rows].sort((a, b) => a.run - b.run);
 	writeFileSync(outJson, JSON.stringify({ generated_at: new Date().toISOString(), server: "deployed (live)", rows: merged }, null, 2));
 	writeFileSync(join(REPO_ROOT, "evidence/live-runs.md"), report(merged));
 	if (CLEANUP) console.log(`cleanup: deleted ${cleanup(merged)} tb-live sessions`);
 }
 
-main().catch((e) => {
-	console.error(e);
+main().catch((error) => {
+	console.error(error);
 	process.exit(1);
 });

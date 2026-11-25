@@ -50,7 +50,7 @@ function trimUrl(u: string) {
   return u.replace(/[.,;:!?'"`]+$/, '')
 }
 
-function urls(text: string): string[] {
+function urls(text: string): Array<string> {
   return [...new Set((text.match(URL_RE) ?? []).map(trimUrl))]
 }
 
@@ -99,7 +99,7 @@ function hasCueNear(content: string, fragment: string): boolean {
   return CUE_RE.test(sentence)
 }
 
-export function overlap(write: WriteInput, contexts: ContextInput[]): Finding[] {
+export function overlap(write: WriteInput, contexts: Array<ContextInput>): Array<Finding> {
   const added = addedText(write)
   if (!added) return []
 
@@ -118,7 +118,7 @@ export function overlap(write: WriteInput, contexts: ContextInput[]): Finding[] 
   const novelGrams = [...ngrams(added)].filter((g) => !explainedGrams.has(g))
   const totalGrams = Math.max(1, ngrams(added).size)
 
-  const findings: Finding[] = []
+  const findings: Array<Finding> = []
 
   for (const ctx of contexts) {
     if (ctx.trust !== 'untrusted') continue
@@ -136,21 +136,25 @@ export function overlap(write: WriteInput, contexts: ContextInput[]): Finding[] 
     const gramHits = novelGrams.filter((g) => ctxGrams.has(g))
 
     const scores: Array<[number, string, string]> = []
-    if (urlHits.length) scores.push([0.9, `copied URL "${urlHits[0]}"`, urlHits[0]])
-    if (hostHits.length) scores.push([0.6, `uses domain "${hostHits[0]}"`, hostHits[0]])
-    if (gramHits.length) {
+    const [url] = urlHits
+    if (url !== undefined) scores.push([0.9, `copied URL "${url}"`, url])
+    const [hostHit] = hostHits
+    if (hostHit !== undefined) scores.push([0.6, `uses domain "${hostHit}"`, hostHit])
+    const [gram] = gramHits
+    if (gram !== undefined) {
       const frac = gramHits.length / totalGrams
-      const fragment = gramHits[0].replace(/ (?=\W)|(?<=\W) /g, '')
+      const fragment = gram.replaceAll(/ (?=\W)|(?<=\W) /g, '')
       scores.push([Math.min(0.85, 0.3 + frac * 1.5), `shares ${gramHits.length} token sequences`, fragment])
     }
-    if (idHits.length) {
+    const [id] = idHits
+    if (id !== undefined) {
       const c = Math.min(0.7, 0.15 + (0.55 * idHits.length) / Math.max(3, novelIds.length))
-      scores.push([c, `introduces identifiers only found here: ${idHits.slice(0, 5).join(', ')}`, idHits[0]])
+      scores.push([c, `introduces identifiers only found here: ${idHits.slice(0, 5).join(', ')}`, id])
     }
-    if (!scores.length) continue
-
     scores.sort((a, b) => b[0] - a[0])
-    const [confidence, , fragment] = scores[0]
+    const best = scores[0]
+    if (!best) continue
+    const [confidence, , fragment] = best
     if (confidence < MIN_CONFIDENCE) continue
 
     // Red when the copied piece sits next to an imperative aimed at the agent
@@ -170,7 +174,7 @@ export function overlap(write: WriteInput, contexts: ContextInput[]): Finding[] 
   return findings.sort((a, b) => b.confidence - a.confidence)
 }
 
-export function worst(verdicts: Verdict[]): Verdict {
+export function worst(verdicts: Array<Verdict>): Verdict {
   if (verdicts.includes('red')) return 'red'
   if (verdicts.includes('amber')) return 'amber'
   return 'green'

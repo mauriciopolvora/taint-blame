@@ -1,17 +1,18 @@
 import { useMemo, useState } from 'react'
-import { type DiffRow, lineDiff, withContext } from './diff'
+import { lineDiff, withContext } from './diff'
+import type { DiffRow } from './diff'
 import type { VerdictOrPending } from './explain'
-import { langFor, type Tok, useTokens } from './highlight'
+import { langFor, useTokens } from './highlight'
+import type { Tok } from './highlight'
 import { verdictVar } from './ui'
 
-function Code({ text, tokens }: { text: string; tokens?: Tok[] }) {
+function Code({ text, tokens }: { text: string; tokens?: Array<Tok> | undefined }) {
   if (!tokens) return <>{text || ' '}</>
   if (tokens.length === 0) return <> </>
   return (
     <>
       {tokens.map((t, i) => (
         <span
-          // biome-ignore lint/suspicious/noArrayIndexKey: tokens are positional
           key={i}
           style={{
             color: t.color,
@@ -89,7 +90,6 @@ export function Diff({
           seg.rows.map((r, ri) => renderRow(r, `${si}-${ri}`))
         ) : (
           <button
-            // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional
             key={si}
             type="button"
             onClick={() => setOpen((s) => new Set(s).add(si))}

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { ContextEvent, WriteEvent } from '#/server/queries'
 import { Highlighted } from './EditCard'
-import { type InputKind, type VerdictOrPending, basename, describeInput, explain, findRanges, readable, v } from './explain'
+import { basename, describeInput, explain, findRanges, readable, v } from './explain'
+import type { InputKind, VerdictOrPending } from './explain'
 import { Time, verdictVar } from './ui'
 
 const ICON: Record<InputKind, string> = {
@@ -37,8 +38,8 @@ export function InputTimeline({
   cwd,
   isFresh,
 }: {
-  contexts: ContextEvent[]
-  writes: WriteEvent[]
+  contexts: Array<ContextEvent>
+  writes: Array<WriteEvent>
   ctxMap: Map<string, ContextEvent>
   cwd: string | null
   isFresh: (id: string) => boolean
@@ -48,7 +49,7 @@ export function InputTimeline({
 
   // input id -> worst verdict among edits it caused, plus fragments to highlight
   const caused = useMemo(() => {
-    const m = new Map<string, { verdict: VerdictOrPending; red: number; amber: number; frags: string[] }>()
+    const m = new Map<string, { verdict: VerdictOrPending; red: number; amber: number; frags: Array<string> }>()
     for (const w of writes) {
       const verdict = v(w.verdict)
       if (verdict !== 'red' && verdict !== 'amber') continue
@@ -67,7 +68,7 @@ export function InputTimeline({
 
   const items = useMemo(() => {
     const cs = outsideOnly ? contexts.filter((c) => c.trust === 'untrusted') : contexts
-    const list: Item[] = [
+    const list: Array<Item> = [
       ...cs.map((c, i) => ({ kind: 'ctx' as const, c, ts: c.ts, o: i })),
       ...writes.map((w, i) => ({ kind: 'write' as const, w, ts: w.ts, o: 100_000 + i })),
     ]
@@ -79,7 +80,8 @@ export function InputTimeline({
   const toggle = (id: string) =>
     setOpen((s) => {
       const n = new Set(s)
-      n.has(id) ? n.delete(id) : n.add(id)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
       return n
     })
 

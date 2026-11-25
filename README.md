@@ -64,6 +64,13 @@ bin/install-pi    # symlinks the extension into ~/.pi/agent/extensions
 
 Start `pi` in any project and type `/taint-blame` for status and settings. See [adapters/pi/README.md](adapters/pi/README.md).
 
+## Checks
+
+CI runs these on every pull request:
+
+- `npx tsc --noEmit`: strict TypeScript, with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
+- `npm run lint`: type-aware oxlint with `@cloudflare/oxlint-config`. `scripts/check-lint.mjs` compares the count of findings per rule and per file with `lint/shrink-only.json`. A higher count fails. A lower count also fails until you run `npm run lint -- --write`, so the baseline only shrinks.
+
 ## Security notes
 
 - Ingest and destructive dashboard actions require the bearer token; the dashboard itself is read-only and open.
