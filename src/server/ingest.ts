@@ -19,9 +19,9 @@ export async function tokenMatches(given: string, expected: string): Promise<boo
 
 // Events are stored in order; a write's candidate influence set is every
 // input event earlier in the same session.
-export async function ingest(db: D1Database, events: AgentEvent[]): Promise<string[]> {
+export async function ingest(db: D1Database, events: Array<AgentEvent>): Promise<Array<string>> {
   const sorted = [...events].sort((a, b) => a.ts - b.ts)
-  const writeIds: string[] = []
+  const writeIds: Array<string> = []
 
   for (const e of sorted) {
     await db

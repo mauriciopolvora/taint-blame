@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { VERDICT_HINT, VERDICT_LABEL, type VerdictOrPending } from './explain'
+import { VERDICT_HINT, VERDICT_LABEL } from './explain'
+import type { VerdictOrPending } from './explain'
 import type { LiveState } from './live'
 
 export const verdictVar: Record<VerdictOrPending, string> = {
@@ -108,7 +109,7 @@ export function Ago({ ts, className = '' }: { ts: number; className?: string }) 
 export function repoName(cwd: string | null): string {
   if (!cwd) return 'unknown repo'
   const parts = cwd.replace(/\/+$/, '').split(/[\\/]/)
-  return parts[parts.length - 1] || cwd
+  return parts.at(-1) || cwd
 }
 
 export function Logo() {
@@ -158,7 +159,7 @@ export function Header({
 
 // Three definitions in a row, separated by hairlines. Only the label carries color.
 export function Legend({ className = '' }: { className?: string }) {
-  const items: VerdictOrPending[] = ['red', 'amber', 'green']
+  const items: Array<VerdictOrPending> = ['red', 'amber', 'green']
   return (
     <dl className={`m-0 grid border-t border-line sm:grid-cols-3 ${className}`}>
       {items.map((k, i) => (

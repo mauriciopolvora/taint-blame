@@ -33,8 +33,8 @@ export function redact(text, { envFile = false } = {}) {
   if (typeof text !== 'string' || !text) return text ?? ''
   let out = text
   for (const re of SECRET_PATTERNS) out = out.replace(re, '[REDACTED]')
-  out = out.replace(ASSIGNMENT, '$1[REDACTED]')
-  if (envFile) out = out.replace(ENV_LINE, '$1[REDACTED]')
+  out = out.replaceAll(ASSIGNMENT, '$1[REDACTED]')
+  if (envFile) out = out.replaceAll(ENV_LINE, '$1[REDACTED]')
   return out
 }
 
@@ -108,7 +108,7 @@ export async function flushQueue() {
     if (!existsSync(QUEUE_FILE)) return 0
     const sending = `${QUEUE_FILE}.${process.pid}.sending`
     renameSync(QUEUE_FILE, sending)
-    const events = readFileSync(sending, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+    const events = readFileSync(sending, 'utf-8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
     let sent = 0
     for (let i = 0; i < events.length; i += 100) {
       const batch = events.slice(i, i + 100)

@@ -1,0 +1,104 @@
+{
+  "@nkzw(require-use-effect-arguments)": {
+    "src/components/live.ts": 1
+  },
+  "eslint(no-console)": {
+    "adapters/pi/taint-blame.ts": 8,
+    "src/server/attribution.ts": 1,
+    "src/server/attribution/judge.ts": 2
+  },
+  "eslint(no-empty)": {
+    "adapters/pi/taint-blame.ts": 11,
+    "adapters/shared/client.mjs": 2
+  },
+  "eslint(no-promise-executor-return)": {
+    "scripts/eval/live-runs.mjs": 1
+  },
+  "quality(no-array-filter-map)": {
+    "adapters/pi/taint-blame.ts": 1,
+    "src/server/attribution/judge.ts": 1,
+    "src/server/attribution/overlap.ts": 3
+  },
+  "quality(no-chained-type-assertions)": {
+    "src/server/ingest.ts": 1
+  },
+  "quality(no-conditional-empty-object-spread)": {
+    "adapters/pi/taint-blame.ts": 1,
+    "src/components/ui.tsx": 2
+  },
+  "quality(no-known-value-widening)": {
+    "adapters/pi/taint-blame.ts": 2,
+    "src/components/explain.ts": 1,
+    "src/components/highlight.ts": 2,
+    "src/components/live.ts": 1,
+    "src/components/ui.tsx": 1
+  },
+  "quality(no-unknown-returns)": {
+    "src/components/highlight.ts": 1
+  },
+  "quality(no-unsafe-dictionary-type)": {
+    "src/server/events.ts": 1
+  },
+  "react(refs)": {
+    "src/components/live.ts": 1
+  },
+  "react(set-state-in-effect)": {
+    "src/components/highlight.ts": 1,
+    "src/components/live.ts": 1,
+    "src/components/shell.tsx": 1,
+    "src/components/ui.tsx": 1,
+    "src/routes/sessions/$id.tsx": 1,
+    "src/routes/settings.tsx": 2
+  },
+  "react-hooks(rules-of-hooks)": {
+    "adapters/pi/taint-blame.ts": 1
+  },
+  "typescript(no-explicit-any)": {
+    "adapters/pi/taint-blame.ts": 23
+  },
+  "typescript(no-non-null-assertion)": {
+    "src/server/attribution/judge.ts": 1
+  },
+  "typescript(no-unsafe-argument)": {
+    "adapters/pi/taint-blame.ts": 18,
+    "src/components/explain.ts": 1
+  },
+  "typescript(no-unsafe-assignment)": {
+    "adapters/pi/taint-blame.ts": 32,
+    "src/server/queries.ts": 1
+  },
+  "typescript(no-unsafe-call)": {
+    "adapters/pi/taint-blame.ts": 33
+  },
+  "typescript(no-unsafe-member-access)": {
+    "adapters/pi/taint-blame.ts": 94
+  },
+  "typescript(no-unsafe-return)": {
+    "adapters/pi/taint-blame.ts": 2
+  },
+  "typescript(no-unsafe-type-assertion)": {
+    "adapters/pi/taint-blame.ts": 9,
+    "src/components/highlight.ts": 1,
+    "src/components/shell.tsx": 1,
+    "src/routes/api/attribute.ts": 1,
+    "src/routes/api/reset.ts": 1,
+    "src/server/attribution.ts": 1,
+    "src/server/attribution/judge.ts": 1,
+    "src/server/events.ts": 3,
+    "src/server/ingest.ts": 1,
+    "src/server/queries.ts": 7
+  },
+  "typescript(only-throw-error)": {
+    "src/routes/sessions/$id.tsx": 1
+  },
+  "typescript(use-unknown-in-catch-callback-variable)": {
+    "scripts/eval/live-runs.mjs": 1
+  },
+  "unicorn(consistent-function-scoping)": {
+    "adapters/pi/taint-blame.ts": 2,
+    "src/components/explain.ts": 1
+  },
+  "unicorn(prefer-top-level-await)": {
+    "scripts/eval/live-runs.mjs": 1
+  }
+}

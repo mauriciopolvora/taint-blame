@@ -1,5 +1,6 @@
 import { judge } from './attribution/judge'
-import { type ContextInput, overlap, type Verdict, worst } from './attribution/overlap'
+import { overlap, worst } from './attribution/overlap'
+import type { ContextInput, Verdict } from './attribution/overlap'
 
 type WriteRow = {
   id: string
@@ -15,8 +16,8 @@ function judgeEnabled(env: Env) {
 }
 
 async function attributeOne(env: Env, w: WriteRow) {
-  const ids = JSON.parse(w.context_ids) as string[]
-  const contexts: ContextInput[] = []
+  const ids = JSON.parse(w.context_ids) as Array<string>
+  const contexts: Array<ContextInput> = []
   // D1 caps bound parameters per statement, so fetch in chunks.
   for (let i = 0; i < ids.length; i += 90) {
     const chunk = ids.slice(i, i + 90)
@@ -61,7 +62,7 @@ async function attributeOne(env: Env, w: WriteRow) {
   await env.DB.batch(stmts)
 }
 
-export async function attributeWrites(env: Env, writeIds: string[]): Promise<void> {
+export async function attributeWrites(env: Env, writeIds: Array<string>): Promise<void> {
   for (const id of writeIds) {
     try {
       const w = await env.DB.prepare(
@@ -70,8 +71,8 @@ export async function attributeWrites(env: Env, writeIds: string[]): Promise<voi
         .bind(id)
         .first<WriteRow>()
       if (w) await attributeOne(env, w)
-    } catch (err) {
-      console.error('attribution failed for %s', id, err)
+    } catch (error) {
+      console.error('attribution failed for %s', id, error)
     }
   }
 }

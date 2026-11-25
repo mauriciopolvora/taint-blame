@@ -40,7 +40,7 @@ export async function resetSessions(token: string, sessionId?: string): Promise<
       body: JSON.stringify(sessionId ? { session_id: sessionId } : {}),
     })
     if (res.ok) {
-      const body = (await res.json()) as { sessions: number }
+      const body = await res.json<{ sessions: number }>()
       return { ok: true, sessions: body.sessions }
     }
     if (res.status === 401) return { ok: false, error: 'The saved token was rejected. Check it in Settings.' }

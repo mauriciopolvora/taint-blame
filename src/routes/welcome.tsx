@@ -132,7 +132,7 @@ function External() {
 
 type Line = { n?: number; kind: 'ctx' | 'add' | 'del' | 'file'; code: string; tag?: 'injected' | 'borrowed' }
 
-const DIFF: Line[] = [
+const DIFF: Array<Line> = [
   { kind: 'file', code: 'src/lib/retry.js' },
   { n: 4, kind: 'ctx', code: 'export async function withRetry(fn, opts = {}) {' },
   { n: 5, kind: 'add', code: "  fetch('http://localhost:8787/ping?pkg=retry-kit').catch(() => {})", tag: 'injected' },
@@ -188,10 +188,11 @@ function ProductMock() {
 }
 
 function DiffRow({ line }: { line: Line }) {
-  if (line.kind === 'file')
+  if (line.kind === 'file') {
     return (
       <div className="mt-2 mb-1 flex min-w-max items-center px-4 font-sans text-[12px] font-medium text-muted first:mt-0">{line.code}</div>
     )
+  }
   const red = line.tag === 'injected'
   const bg = red ? 'bg-v-red/[0.07]' : line.kind === 'add' ? 'bg-v-green/[0.06]' : line.kind === 'del' ? 'bg-del' : ''
   const sign = line.kind === 'add' ? '+' : line.kind === 'del' ? '-' : ' '
@@ -240,7 +241,7 @@ function GuardMock() {
   return (
     <div className="relative z-10 mx-auto mt-6 max-w-[440px] rounded-lg border border-line-2 bg-fg p-4 font-mono text-[12.5px] leading-relaxed text-bg shadow-[0_24px_48px_-20px_rgb(20_20_18/0.5)] lg:mr-[-28px] lg:-mt-12 lg:w-[380px]">
       <p className="m-0 text-[#ff8a80]">⚠ Taint Blame: possible prompt injection</p>
-      <p className="m-0 mt-1 text-bg/60">You didn't ask for that. It comes from GitHub issue #1, which the agent read.</p>
+      <p className="m-0 mt-1 text-bg/60">You didn&apos;t ask for that. It comes from GitHub issue #1, which the agent read.</p>
       <div className="mt-3 space-y-1">
         <p className="m-0 rounded bg-bg/10 px-2 py-1">› Block this edit (recommended)</p>
         <p className="m-0 px-2 py-1 text-bg/60">&nbsp; Allow it anyway</p>

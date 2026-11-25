@@ -51,8 +51,8 @@ function clip(s: string) {
 export async function judge(
   apiKey: string,
   write: WriteInput,
-  contexts: ContextInput[],
-  hints: Finding[],
+  contexts: Array<ContextInput>,
+  hints: Array<Finding>,
 ): Promise<JudgeResult | null> {
   const untrusted = contexts.filter((c) => c.trust === 'untrusted')
   if (untrusted.length === 0) return { verdict: 'green', findings: [] }
@@ -110,7 +110,7 @@ ${hintText}
       console.error(`judge failed: ${res.status} ${(await res.text()).slice(0, 300)}`)
       return null
     }
-    const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
+    const body = await res.json<{ choices?: Array<{ message?: { content?: string } }> }>()
     const content = body.choices?.[0]?.message?.content
     if (!content) return null
     const parsed = JSON.parse(content) as {
@@ -128,8 +128,8 @@ ${hintText}
           reason: f.reason,
         })),
     }
-  } catch (err) {
-    console.error('judge failed', err)
+  } catch (error) {
+    console.error('judge failed', error)
     return null
   }
 }

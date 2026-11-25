@@ -11,9 +11,9 @@ type BaseEvent = {
   agent: string
   session_id: string
   ts: number
-  cwd?: string
+  cwd?: string | undefined
   source: string
-  source_ref?: string
+  source_ref?: string | undefined
 }
 
 export type InputEvent = BaseEvent & {
@@ -32,7 +32,7 @@ export type WriteEvent = BaseEvent & {
 export type AgentEvent = InputEvent | WriteEvent
 
 export type ParseResult =
-  | { ok: true; events: AgentEvent[] }
+  | { ok: true; events: Array<AgentEvent> }
   | { ok: false; error: string }
 
 function str(v: unknown, max: number): v is string {
@@ -59,9 +59,9 @@ function parseOne(raw: unknown, i: number): AgentEvent | string {
     agent: e.agent,
     session_id: e.session_id,
     ts: Math.trunc(e.ts),
-    cwd: e.cwd as string | undefined,
+    cwd: e.cwd,
     source: e.source,
-    source_ref: e.source_ref as string | undefined,
+    source_ref: e.source_ref,
   }
 
   if (e.kind === 'input') {
@@ -92,7 +92,7 @@ export function parseEvents(body: unknown): ParseResult {
   if (list.length === 0) return { ok: false, error: 'no events' }
   if (list.length > MAX_EVENTS_PER_REQUEST) return { ok: false, error: 'too many events' }
 
-  const events: AgentEvent[] = []
+  const events: Array<AgentEvent> = []
   for (const [i, raw] of list.entries()) {
     const parsed = parseOne(raw, i)
     if (typeof parsed === 'string') return { ok: false, error: parsed }

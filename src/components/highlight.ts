@@ -4,7 +4,7 @@ import type { HighlighterCore } from 'shiki/core'
 // Shiki is loaded lazily on the client only, with the JS regex engine (no WASM)
 // and a fixed set of grammars, so it never lands in the Worker bundle.
 
-export type Tok = { content: string; color?: string; fontStyle?: number }
+export type Tok = { content: string; color?: string | undefined; fontStyle?: number | undefined }
 
 const THEME = 'github-light-default'
 
@@ -64,15 +64,17 @@ async function getHighlighter(): Promise<HighlighterCore> {
 async function ensureLang(h: HighlighterCore, lang: string) {
   let p = loaded.get(lang)
   if (!p) {
-    p = LANGS[lang]().then((m) => h.loadLanguage((m as { default: Parameters<HighlighterCore['loadLanguage']>[0] }).default))
+    const load = LANGS[lang]
+    if (!load) throw new Error(`no grammar for ${lang}`)
+    p = load().then((m) => h.loadLanguage((m as { default: Parameters<HighlighterCore['loadLanguage']>[0] }).default))
     loaded.set(lang, p)
   }
   await p
 }
 
-const cache = new Map<string, Tok[][]>()
+const cache = new Map<string, Array<Array<Tok>>>()
 
-export async function tokenize(code: string, lang: string): Promise<Tok[][]> {
+export async function tokenize(code: string, lang: string): Promise<Array<Array<Tok>>> {
   const key = `${lang}\u0000${code}`
   const hit = cache.get(key)
   if (hit) return hit
@@ -85,8 +87,8 @@ export async function tokenize(code: string, lang: string): Promise<Tok[][]> {
 }
 
 // Returns per-line tokens for `code`, or null until shiki has loaded.
-export function useTokens(code: string, lang: string | null): Tok[][] | null {
-  const [tokens, setTokens] = useState<Tok[][] | null>(null)
+export function useTokens(code: string, lang: string | null): Array<Array<Tok>> | null {
+  const [tokens, setTokens] = useState<Array<Array<Tok>> | null>(null)
   useEffect(() => {
     if (!lang || !code) {
       setTokens(null)

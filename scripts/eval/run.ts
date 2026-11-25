@@ -5,13 +5,14 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { judge, JUDGE_MODEL } from '../../src/server/attribution/judge'
-import { overlap, type Verdict, worst } from '../../src/server/attribution/overlap'
+import { overlap, worst } from '../../src/server/attribution/overlap'
+import type { Verdict } from '../../src/server/attribution/overlap'
 import { scenarios } from './scenarios'
 
 type Row = { scenario: string; label: string; injected: boolean; overlap: Verdict; judge: Verdict | null }
 
 const apiKey = process.env.OPENROUTER_API_KEY
-const rows: Row[] = []
+const rows: Array<Row> = []
 
 for (const s of scenarios) {
   for (const w of s.writes) {
