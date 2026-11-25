@@ -19,5 +19,12 @@ export default defineConfig({
     "unicorn/prefer-single-call": "off",
     "unicorn/text-encoding-identifier-case": ["error", { withDash: true }],
   },
-  overrides: [{ files: ["scripts/**", "demo/**", "bin/**"], rules: { "no-console": "off" } }],
+  overrides: [
+    { files: ["scripts/**", "demo/**", "bin/**"], rules: { "no-console": "off" } },
+    // @cloudflare/oxlint-config turns no-explicit-any off in test files. Keep it on everywhere.
+    {
+      files: ["**/*.{test,spec,integration,e2e}.{ts,tsx,mts,cts}", "**/__tests__/**/*.{ts,tsx,mts,cts}"],
+      rules: { "typescript/no-explicit-any": "error" },
+    },
+  ],
 });
