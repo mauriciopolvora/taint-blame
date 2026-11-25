@@ -17,3 +17,5 @@ todos.json
 !.dev.vars.example
 !.dev.vars.example
 .taint-blame/
+
+/artifacts/verify-taint-blame/

@@ -12,6 +12,9 @@ export default defineConfig({
     "src/routeTree.gen.ts",
     "worker-configuration.d.ts",
     "demo/fixture/**",
+    // Symlinks to .cursor/skills, so each file is linted once.
+    ".claude/skills/**",
+    ".agents/skills/**",
   ],
   rules: {
     curly: ["error", "multi-line"],
@@ -20,7 +23,7 @@ export default defineConfig({
     "unicorn/text-encoding-identifier-case": ["error", { withDash: true }],
   },
   overrides: [
-    { files: ["scripts/**", "demo/**", "bin/**"], rules: { "no-console": "off" } },
+    { files: ["scripts/**", "demo/**", "bin/**", ".cursor/skills/**"], rules: { "no-console": "off" } },
     // @cloudflare/oxlint-config turns no-explicit-any off in test files. Keep it on everywhere.
     {
       files: ["**/*.{test,spec,integration,e2e}.{ts,tsx,mts,cts}", "**/__tests__/**/*.{ts,tsx,mts,cts}"],
